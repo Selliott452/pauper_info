@@ -1,0 +1,31 @@
+package com.pauperinfo.controllers
+
+import com.pauperinfo.moxfield.MoxfieldSyncService
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
+
+@RestController
+@RequestMapping("/moxfield")
+class MoxfieldController(private val moxfieldSyncService: MoxfieldSyncService) {
+
+    @PostMapping("/sync-decks")
+    fun syncDecks(
+        @RequestParam cardName: String
+    ): ResponseEntity<String> {
+
+        moxfieldSyncService.syncDecksForCard(cardName)
+
+        return ResponseEntity.accepted().body("Deck sync started for cardName=$cardName")
+    }
+
+    @PostMapping("/sync-all-decks")
+    fun syncAllDecks(): ResponseEntity<String> {
+
+        moxfieldSyncService.syncAllDecks()
+
+        return ResponseEntity.accepted().body("Full deck sync started")
+    }
+}
