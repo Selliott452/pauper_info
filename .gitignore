@@ -1,4 +1,5 @@
 HELP.md
+.claude/
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -38,3 +39,4 @@ out/
 
 ### Kotlin ###
 .kotlin
+/.claude/settings.local.json
