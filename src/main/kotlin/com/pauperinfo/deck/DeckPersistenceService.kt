@@ -8,8 +8,6 @@ class DeckPersistenceService(private val deckRepository: DeckRepository) {
 
     @Transactional
     fun saveNewDecks(ids: List<String>) {
-        val existing = deckRepository.findAllById(ids).map { it.id }.toSet()
-        val newDecks = ids.filter { it !in existing }.map { Deck(it) }
-        deckRepository.saveAll(newDecks)
+        ids.forEach { deckRepository.upsert(it) }
     }
 }
