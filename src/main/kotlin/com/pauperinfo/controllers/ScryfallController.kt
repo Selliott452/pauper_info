@@ -1,5 +1,6 @@
-package com.pauperinfo.scryfall
+package com.pauperinfo.controllers
 
+import com.pauperinfo.scryfall.ScryfallSyncService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,7 +12,9 @@ class ScryfallController(private val scryfallSyncService: ScryfallSyncService) {
 
     @PostMapping("/sync")
     fun sync(): ResponseEntity<String> {
+
         scryfallSyncService.sync()
+
         return ResponseEntity.accepted().body("Sync started")
     }
 }

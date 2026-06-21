@@ -1,4 +1,4 @@
-package com.pauperinfo.card
+package com.pauperinfo.card.enums
 
 enum class Color(val code: String) {
     WHITE("W"),

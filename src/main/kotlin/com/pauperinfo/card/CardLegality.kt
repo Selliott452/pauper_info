@@ -1,5 +1,7 @@
 package com.pauperinfo.card
 
+import com.pauperinfo.card.enums.Format
+import com.pauperinfo.card.enums.LegalityStatus
 import jakarta.persistence.*
 import java.io.Serializable
 import java.util.UUID

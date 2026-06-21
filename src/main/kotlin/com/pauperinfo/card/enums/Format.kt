@@ -1,4 +1,4 @@
-package com.pauperinfo.card
+package com.pauperinfo.card.enums
 
 enum class Format {
     STANDARD, FUTURE, HISTORIC, TIMELESS, GLADIATOR, PIONEER, EXPLORER,
