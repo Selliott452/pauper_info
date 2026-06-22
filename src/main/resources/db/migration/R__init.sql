@@ -19,3 +19,20 @@ CREATE TABLE IF NOT EXISTS card_legality (
     status TEXT NOT NULL,
     PRIMARY KEY (card_id, format)
 );
+
+CREATE TABLE IF NOT EXISTS deck (
+    id          TEXT PRIMARY KEY,
+    name        TEXT,
+    author      TEXT,
+    colors      TEXT[],
+    created_at  TIMESTAMPTZ,
+    updated_at  TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS deck_card (
+    deck_id  TEXT NOT NULL REFERENCES deck(id),
+    card_id  UUID NOT NULL,
+    quantity INT  NOT NULL,
+    board    TEXT NOT NULL,
+    PRIMARY KEY (deck_id, card_id, board)
+);

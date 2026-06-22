@@ -59,6 +59,36 @@ class MoxfieldClient {
         throw RuntimeException("Exhausted retries for cardName=$cardName page=$pageNumber")
     }
 
+    fun fetchDeckDetail(publicId: String): MoxfieldDeckDetailResponse {
+        val url = "https://api2.moxfield.com/v3/decks/all/$publicId"
+
+        rateLimiter.acquire()
+        repeat(3) { attempt ->
+            val proxyResponse = proxyClient.post()
+                .uri(URI.create("http://localhost:8081/fetch"))
+                .header("Content-Type", "application/json")
+                .body("""{"url":"$url"}""")
+                .retrieve()
+                .body(ProxyResponse::class.java)!!
+
+            when (proxyResponse.status) {
+                200 -> return objectMapper.readValue(proxyResponse.body, MoxfieldDeckDetailResponse::class.java)
+                403 -> {
+                    log.warn("Got 403 for deck $publicId (attempt ${attempt + 1}/3), retrying")
+                    Thread.sleep(2000)
+                }
+                429 -> {
+                    log.warn("Rate limited for deck $publicId (attempt ${attempt + 1}/3), backing off 10s")
+                    Thread.sleep(10000)
+                }
+                404 -> throw DeckNotFoundException(publicId)
+                else -> throw RuntimeException("Moxfield returned ${proxyResponse.status} for deck $publicId")
+            }
+        }
+
+        throw RuntimeException("Exhausted retries for deck $publicId")
+    }
+
     companion object {
         const val POOL_SIZE = 50
         const val REQUESTS_PER_SECOND = 20.0

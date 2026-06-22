@@ -1,5 +1,6 @@
 package com.pauperinfo.controllers
 
+import com.pauperinfo.moxfield.MoxfieldDeckDetailSyncService
 import com.pauperinfo.moxfield.MoxfieldSyncService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -9,7 +10,10 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/moxfield")
-class MoxfieldController(private val moxfieldSyncService: MoxfieldSyncService) {
+class MoxfieldController(
+    private val moxfieldSyncService: MoxfieldSyncService,
+    private val moxfieldDeckDetailSyncService: MoxfieldDeckDetailSyncService,
+) {
 
     @PostMapping("/sync-decks")
     fun syncDecks(
@@ -27,5 +31,11 @@ class MoxfieldController(private val moxfieldSyncService: MoxfieldSyncService) {
         moxfieldSyncService.syncAllDecks()
 
         return ResponseEntity.accepted().body("Full deck sync started")
+    }
+
+    @PostMapping("/sync-deck-details")
+    fun syncDeckDetails(): ResponseEntity<String> {
+        moxfieldDeckDetailSyncService.syncDeckDetails()
+        return ResponseEntity.accepted().body("Deck detail sync started")
     }
 }

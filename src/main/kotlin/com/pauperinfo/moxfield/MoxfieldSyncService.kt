@@ -28,7 +28,11 @@ class MoxfieldSyncService(
 
         val futures = cards.map { card ->
             executor.submit {
-                syncDecksForCard(card.name)
+                try {
+                    syncDecksForCard(card.name)
+                } catch (e: Exception) {
+                    log.warn("Failed to sync decks for card ${card.name}: ${e.message}")
+                }
                 val done = completed.incrementAndGet()
                 if (done % 50 == 0) {
                     log.info("Progress: $done/${cards.size} cards synced")

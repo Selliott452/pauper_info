@@ -21,8 +21,11 @@ class FetchResponse(BaseModel):
 
 @app.post("/fetch")
 async def fetch(req: FetchRequest) -> FetchResponse:
-    response = await session.get(req.url, headers=HEADERS, timeout=30)
-    return FetchResponse(status=response.status_code, body=response.text)
+    try:
+        response = await session.get(req.url, headers=HEADERS, timeout=30)
+        return FetchResponse(status=response.status_code, body=response.text)
+    except Exception as e:
+        return FetchResponse(status=500, body=str(e))
 
 if __name__ == "__main__":
     import uvicorn
