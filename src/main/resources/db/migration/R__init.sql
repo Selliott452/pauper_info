@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS card (
     colors TEXT[],
     rarity TEXT NOT NULL,
     set_code TEXT NOT NULL,
-    image_uri TEXT
+    image_uri TEXT,
+    back_image_uri TEXT
 );
 
 CREATE TABLE IF NOT EXISTS card_legality (

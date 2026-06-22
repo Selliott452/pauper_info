@@ -19,6 +19,7 @@ class CardStatisticsService(
     fun getStatistics(
         colors: List<Color>?,
         includeColorless: Boolean,
+        exactColors: Boolean,
         names: List<String>?,
         types: List<CardType>?,
         minMainboardDecks: Int?,
@@ -39,7 +40,13 @@ class CardStatisticsService(
             val colorClauses = buildList {
                 if (!colors.isNullOrEmpty()) {
                     val literal = colors.joinToString(",") { "'${it.name}'" }
-                    add("(coalesce(cardinality(c.colors), 0) > 0 AND c.colors <@ ARRAY[$literal]::text[])")
+                    if (exactColors) {
+                        // Card's color set equals the selected set exactly.
+                        add("(c.colors <@ ARRAY[$literal]::text[] AND c.colors @> ARRAY[$literal]::text[])")
+                    } else {
+                        // Within identity: card's colors are within the selected set.
+                        add("(coalesce(cardinality(c.colors), 0) > 0 AND c.colors <@ ARRAY[$literal]::text[])")
+                    }
                 }
                 if (includeColorless) {
                     add("coalesce(cardinality(c.colors), 0) = 0")
@@ -103,55 +110,7 @@ class CardStatisticsService(
         return rows.firstOrNull()?.toCardStatistics()
     }
 
-    // Force-graph of the top mainboard cards and their co-occurrence edges.
-    @Suppress("UNCHECKED_CAST")
-    fun getGraph(topCards: Int, minShared: Int): CardGraph {
-        // Top cards by mainboard deck count. topCards is an integer — safe to inline.
-        val nodeRows = entityManager.createNativeQuery(
-            """
-            SELECT c.id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
-            FROM card c
-            JOIN deck_card dc ON dc.card_id = c.id AND dc.board = 'mainboard'
-            GROUP BY c.id, c.name, c.colors
-            ORDER BY deck_count DESC
-            LIMIT $topCards
-            """.trimIndent()
-        ).resultList as List<Array<Any?>>
-
-        val nodes = nodeRows.map { row ->
-            GraphNode(
-                id = row[0] as UUID,
-                name = row[1] as String,
-                colors = parseColors(row[2]),
-                deckCount = (row[3] as Number).toLong(),
-            )
-        }
-        if (nodes.isEmpty()) return CardGraph(emptyList(), emptyList())
-
-        // Pairwise co-occurrence among the node set. Each unordered pair appears once
-        // (a.card_id < b.card_id). minShared is an integer — safe to inline.
-        val ids = nodes.map { it.id }
-        val linkRows = entityManager.createNativeQuery(
-            """
-            SELECT a.card_id, b.card_id, COUNT(DISTINCT a.deck_id) AS shared
-            FROM deck_card a
-            JOIN deck_card b ON a.deck_id = b.deck_id AND a.card_id < b.card_id
-            WHERE a.board = 'mainboard' AND b.board = 'mainboard'
-              AND a.card_id IN (:ids) AND b.card_id IN (:ids)
-            GROUP BY a.card_id, b.card_id
-            HAVING COUNT(DISTINCT a.deck_id) >= $minShared
-            """.trimIndent()
-        ).setParameter("ids", ids).resultList as List<Array<Any?>>
-
-        val links = linkRows.map { row ->
-            GraphLink(
-                source = row[0] as UUID,
-                target = row[1] as UUID,
-                value = (row[2] as Number).toLong(),
-            )
-        }
-        return CardGraph(nodes, links)
-    }
+    fun getAllCardNames(): List<String> = cardRepository.findAllNames()
 
     // Cards that share mainboard decks with the target card, by distinct deck count.
     @Suppress("UNCHECKED_CAST")
@@ -209,6 +168,7 @@ class CardStatisticsService(
             rarity = card.rarity,
             setCode = card.setCode,
             imageUri = card.imageUri,
+            backImageUri = card.backImageUri,
             mainboardDeckCount = stats?.mainboardDeckCount ?: 0,
             sideboardDeckCount = stats?.sideboardDeckCount ?: 0,
             avgMainboardQuantity = stats?.avgMainboardQuantity,

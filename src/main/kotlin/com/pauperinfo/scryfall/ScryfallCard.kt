@@ -33,5 +33,23 @@ data class ScryfallCard(
     @JsonProperty("image_uris")
     val imageUris: Map<String, String>?,
 
+    @JsonProperty("card_faces")
+    val cardFaces: List<ScryfallCardFace>?,
+
     val legalities: Map<String, String>
+)
+
+// Double-faced cards carry mana cost, oracle text, colors, and images per face.
+data class ScryfallCardFace(
+
+    @JsonProperty("mana_cost")
+    val manaCost: String?,
+
+    @JsonProperty("oracle_text")
+    val oracleText: String?,
+
+    val colors: List<String>?,
+
+    @JsonProperty("image_uris")
+    val imageUris: Map<String, String>?,
 )

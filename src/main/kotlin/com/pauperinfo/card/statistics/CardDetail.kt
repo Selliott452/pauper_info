@@ -32,6 +32,8 @@ data class CardDetail(
 
     val imageUri: String?,
 
+    val backImageUri: String?,
+
     val mainboardDeckCount: Long,
 
     val sideboardDeckCount: Long,

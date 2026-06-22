@@ -37,6 +37,8 @@ class Card(
 
     val imageUri: String?,
 
+    val backImageUri: String?,
+
     @OneToMany(mappedBy = "card", cascade = [CascadeType.ALL], orphanRemoval = true)
     val legalities: MutableList<CardLegality> = mutableListOf()
 )

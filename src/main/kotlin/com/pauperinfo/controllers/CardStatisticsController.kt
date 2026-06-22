@@ -4,7 +4,6 @@ import com.pauperinfo.card.enums.CardType
 import com.pauperinfo.card.enums.Color
 import com.pauperinfo.card.statistics.CardCooccurrence
 import com.pauperinfo.card.statistics.CardDetail
-import com.pauperinfo.card.statistics.CardGraph
 import com.pauperinfo.card.statistics.CardStatSort
 import com.pauperinfo.card.statistics.CardStatistics
 import com.pauperinfo.card.statistics.CardStatisticsService
@@ -18,11 +17,14 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/cards")
-class CardStatisticsController(private val cardStatisticsService: CardStatisticsService) {
+class CardStatisticsController(
+    private val cardStatisticsService: CardStatisticsService,
+) {
 
     @GetMapping("/statistics")
     fun statistics(
         @RequestParam(required = false) colors: List<String>?,
+        @RequestParam(defaultValue = "within") colorMatch: String,
         @RequestParam(required = false) names: List<String>?,
         @RequestParam(required = false) types: List<String>?,
         @RequestParam(required = false) minMainboardDecks: Int?,
@@ -39,6 +41,7 @@ class CardStatisticsController(private val cardStatisticsService: CardStatistics
         return cardStatisticsService.getStatistics(
             colors = parseColors(coloredFilters),
             includeColorless = includeColorless,
+            exactColors = colorMatch == "exact",
             names = names,
             types = parseTypes(types),
             minMainboardDecks = minMainboardDecks,
@@ -50,11 +53,8 @@ class CardStatisticsController(private val cardStatisticsService: CardStatistics
         )
     }
 
-    @GetMapping("/graph")
-    fun graph(
-        @RequestParam(defaultValue = "120") topCards: Int,
-        @RequestParam(defaultValue = "200") minShared: Int,
-    ): CardGraph = cardStatisticsService.getGraph(topCards, minShared)
+    @GetMapping("/names")
+    fun cardNames(): List<String> = cardStatisticsService.getAllCardNames()
 
     @GetMapping("/{name}/statistics")
     fun statisticsForCard(@PathVariable name: String): ResponseEntity<CardStatistics> {

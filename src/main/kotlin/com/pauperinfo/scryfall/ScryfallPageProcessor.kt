@@ -62,19 +62,35 @@ class ScryfallPageProcessor(
     }
 
     private fun ScryfallCard.toEntity(): Card {
+        val faces = cardFaces ?: emptyList()
+
+        // Double-faced cards keep these per face; fall back to combining the faces.
+        val resolvedManaCost = manaCost?.takeIf { it.isNotBlank() }
+            ?: faces.mapNotNull { it.manaCost?.takeIf { c -> c.isNotBlank() } }
+                .takeIf { it.isNotEmpty() }?.joinToString(" // ")
+        val resolvedOracleText = oracleText
+            ?: faces.mapNotNull { it.oracleText }.takeIf { it.isNotEmpty() }?.joinToString("\n//\n")
+        val resolvedColors = (colors?.takeIf { it.isNotEmpty() }
+            ?: faces.flatMap { it.colors ?: emptyList() }.distinct())
+        val resolvedImageUri = imageUris?.get("normal")
+            ?: faces.firstNotNullOfOrNull { it.imageUris?.get("normal") }
+        // Back face image, only present on true double-faced cards (transform/MDFC).
+        val resolvedBackImageUri = faces.getOrNull(1)?.imageUris?.get("normal")
+
         val card = Card(
             id = id,
             name = name,
-            manaCost = manaCost,
+            manaCost = resolvedManaCost,
             cmc = cmc,
             typeLine = typeLine,
-            oracleText = oracleText,
+            oracleText = resolvedOracleText,
             power = power,
             toughness = toughness,
-            colors = (colors ?: emptyList()).mapNotNull { code -> Color.entries.find { it.code == code } }.toTypedArray(),
+            colors = resolvedColors.mapNotNull { code -> Color.entries.find { it.code == code } }.toTypedArray(),
             rarity = Rarity.entries.find { it.name == rarity.uppercase() } ?: Rarity.COMMON,
             setCode = set,
-            imageUri = imageUris?.get("normal")
+            imageUri = resolvedImageUri,
+            backImageUri = resolvedBackImageUri
         )
 
         val cardLegalities = legalities.entries
