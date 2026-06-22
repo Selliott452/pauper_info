@@ -1,6 +1,7 @@
 package com.pauperinfo.moxfield
 
 import com.pauperinfo.card.enums.Color
+import com.pauperinfo.card.repositories.CardRepository
 import com.pauperinfo.deck.Deck
 import com.pauperinfo.deck.DeckCard
 import com.pauperinfo.deck.DeckRepository
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class MoxfieldDeckDetailSyncService(
     private val deckRepository: DeckRepository,
+    private val cardRepository: CardRepository,
     private val moxfieldClient: MoxfieldClient,
 ) {
 
@@ -24,6 +26,12 @@ class MoxfieldDeckDetailSyncService(
 
     @Async
     fun syncDeckDetails() {
+        // Resolve deck cards to our canonical card by name. The card table holds one
+        // printing per card (Scryfall unique=cards), but decks reference arbitrary
+        // printings, so joining on scryfall_id would miss most matches.
+        val nameToId = cardRepository.findAll().associate { it.name to it.id }
+        log.info("Loaded ${nameToId.size} cards for name resolution")
+
         val pending = deckRepository.findAllByNameIsNull()
         log.info("Deck detail sync starting: ${pending.size} decks to fetch")
 
@@ -34,7 +42,7 @@ class MoxfieldDeckDetailSyncService(
         pending.forEach { deck ->
             executor.submit {
                 try {
-                    fetchAndPersist(deck.id)
+                    fetchAndPersist(deck.id, nameToId)
                     val done = completed.incrementAndGet()
                     if (done % 500 == 0) {
                         log.info("Deck detail sync progress: $done / ${pending.size} (${failed.get()} failed)")
@@ -56,17 +64,20 @@ class MoxfieldDeckDetailSyncService(
     }
 
     @Transactional
-    fun fetchAndPersist(publicId: String) {
+    fun fetchAndPersist(publicId: String, nameToId: Map<String, UUID>) {
         val detail = moxfieldClient.fetchDeckDetail(publicId)
 
-        val cards = buildList {
-            detail.boards.mainboard.cards.values.forEach { entry ->
-                add(DeckCard(UUID.fromString(entry.card.scryfallId), entry.quantity, "mainboard"))
+        // Resolve each entry to a canonical card id by name, dropping cards we don't
+        // track. Sum quantities per (card, board) so duplicate printings collapse to
+        // one row and never collide on the (deck_id, card_id, board) primary key.
+        val cards = sequenceOf("mainboard" to detail.boards.mainboard, "sideboard" to detail.boards.sideboard)
+            .flatMap { (board, b) -> b.cards.values.asSequence().map { board to it } }
+            .mapNotNull { (board, entry) ->
+                nameToId[entry.card.name]?.let { cardId -> Triple(cardId, board, entry.quantity) }
             }
-            detail.boards.sideboard.cards.values.forEach { entry ->
-                add(DeckCard(UUID.fromString(entry.card.scryfallId), entry.quantity, "sideboard"))
-            }
-        }
+            .groupingBy { (cardId, board, _) -> cardId to board }
+            .fold(0) { acc, (_, _, quantity) -> acc + quantity }
+            .map { (key, quantity) -> DeckCard(key.first, quantity, key.second) }
 
         val deck = Deck(
             id = detail.publicId,

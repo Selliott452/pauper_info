@@ -4,4 +4,6 @@ import com.pauperinfo.card.Card
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface CardRepository : JpaRepository<Card, UUID>
+interface CardRepository : JpaRepository<Card, UUID> {
+    fun findByName(name: String): Card?
+}

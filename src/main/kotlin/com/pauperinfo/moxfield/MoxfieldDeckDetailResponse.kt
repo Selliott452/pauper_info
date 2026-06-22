@@ -58,6 +58,6 @@ data class MoxfieldBoardEntry(
 
 data class MoxfieldCardRef(
 
-    @JsonProperty("scryfall_id")
-    val scryfallId: String,
+    @JsonProperty("name")
+    val name: String,
 )

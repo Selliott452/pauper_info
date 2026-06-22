@@ -1,6 +1,8 @@
 package com.pauperinfo.card.statistics
 
+import com.pauperinfo.card.enums.CardType
 import com.pauperinfo.card.enums.Color
+import com.pauperinfo.card.repositories.CardRepository
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import org.springframework.stereotype.Service
@@ -10,12 +12,15 @@ import java.util.UUID
 @Service
 class CardStatisticsService(
     @PersistenceContext private val entityManager: EntityManager,
+    private val cardRepository: CardRepository,
 ) {
 
     @Suppress("UNCHECKED_CAST")
     fun getStatistics(
         colors: List<Color>?,
+        includeColorless: Boolean,
         names: List<String>?,
+        types: List<CardType>?,
         minMainboardDecks: Int?,
         minSideboardDecks: Int?,
         sortBy: CardStatSort,
@@ -27,16 +32,36 @@ class CardStatisticsService(
         val params = mutableMapOf<String, Any>()
 
         val where = buildList {
-            // Subset filter: a card matches if all of its colors fall within the requested set.
-            // Values come from the Color enum, so inlining the array literal is injection-safe.
-            if (!colors.isNullOrEmpty()) {
-                val literal = colors.joinToString(",") { "'${it.name}'" }
-                add("c.colors <@ ARRAY[$literal]::text[]")
+            // Color filter. Colorless is its own selectable value (includeColorless):
+            // colored cards must be non-empty and within the selected set (subset/identity),
+            // colorless cards (empty color array) only match when explicitly included.
+            // Color enum values are inlined safely (no user-supplied strings).
+            val colorClauses = buildList {
+                if (!colors.isNullOrEmpty()) {
+                    val literal = colors.joinToString(",") { "'${it.name}'" }
+                    add("(coalesce(cardinality(c.colors), 0) > 0 AND c.colors <@ ARRAY[$literal]::text[])")
+                }
+                if (includeColorless) {
+                    add("coalesce(cardinality(c.colors), 0) = 0")
+                }
+            }
+            if (colorClauses.isNotEmpty()) {
+                add("(${colorClauses.joinToString(" OR ")})")
             }
             // Name filter uses a bound parameter — names are arbitrary user input.
             if (!names.isNullOrEmpty()) {
                 add("c.name IN (:names)")
                 params["names"] = names
+            }
+            // Type filter: a card matches if its type line contains any selected type
+            // (e.g. "Artifact Creature — Construct" matches both Artifact and Creature).
+            // Each value is a bound parameter — arbitrary user input.
+            if (!types.isNullOrEmpty()) {
+                val typeClauses = types.mapIndexed { i, type ->
+                    params["type$i"] = "%${type.label}%"
+                    "c.type_line ILIKE :type$i"
+                }
+                add("(${typeClauses.joinToString(" OR ")})")
             }
         }
         if (where.isNotEmpty()) {
@@ -76,6 +101,120 @@ class CardStatisticsService(
             .setParameter("name", name)
             .resultList as List<Array<Any?>>
         return rows.firstOrNull()?.toCardStatistics()
+    }
+
+    // Force-graph of the top mainboard cards and their co-occurrence edges.
+    @Suppress("UNCHECKED_CAST")
+    fun getGraph(topCards: Int, minShared: Int): CardGraph {
+        // Top cards by mainboard deck count. topCards is an integer — safe to inline.
+        val nodeRows = entityManager.createNativeQuery(
+            """
+            SELECT c.id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
+            FROM card c
+            JOIN deck_card dc ON dc.card_id = c.id AND dc.board = 'mainboard'
+            GROUP BY c.id, c.name, c.colors
+            ORDER BY deck_count DESC
+            LIMIT $topCards
+            """.trimIndent()
+        ).resultList as List<Array<Any?>>
+
+        val nodes = nodeRows.map { row ->
+            GraphNode(
+                id = row[0] as UUID,
+                name = row[1] as String,
+                colors = parseColors(row[2]),
+                deckCount = (row[3] as Number).toLong(),
+            )
+        }
+        if (nodes.isEmpty()) return CardGraph(emptyList(), emptyList())
+
+        // Pairwise co-occurrence among the node set. Each unordered pair appears once
+        // (a.card_id < b.card_id). minShared is an integer — safe to inline.
+        val ids = nodes.map { it.id }
+        val linkRows = entityManager.createNativeQuery(
+            """
+            SELECT a.card_id, b.card_id, COUNT(DISTINCT a.deck_id) AS shared
+            FROM deck_card a
+            JOIN deck_card b ON a.deck_id = b.deck_id AND a.card_id < b.card_id
+            WHERE a.board = 'mainboard' AND b.board = 'mainboard'
+              AND a.card_id IN (:ids) AND b.card_id IN (:ids)
+            GROUP BY a.card_id, b.card_id
+            HAVING COUNT(DISTINCT a.deck_id) >= $minShared
+            """.trimIndent()
+        ).setParameter("ids", ids).resultList as List<Array<Any?>>
+
+        val links = linkRows.map { row ->
+            GraphLink(
+                source = row[0] as UUID,
+                target = row[1] as UUID,
+                value = (row[2] as Number).toLong(),
+            )
+        }
+        return CardGraph(nodes, links)
+    }
+
+    // Cards that share mainboard decks with the target card, by distinct deck count.
+    @Suppress("UNCHECKED_CAST")
+    fun getCooccurrences(name: String, limit: Int): CardCooccurrence? {
+        val card = cardRepository.findByName(name) ?: return null
+
+        val deckCount = (entityManager.createNativeQuery(
+            "SELECT COUNT(DISTINCT deck_id) FROM deck_card WHERE card_id = :targetId AND board = 'mainboard'"
+        ).setParameter("targetId", card.id).singleResult as Number).toLong()
+
+        // limit is an integer — safe to inline. targetId is a bound parameter.
+        val sql = """
+            SELECT c.id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
+            FROM deck_card dc
+            JOIN card c ON c.id = dc.card_id
+            WHERE dc.board = 'mainboard'
+              AND dc.card_id <> :targetId
+              AND dc.deck_id IN (
+                  SELECT deck_id FROM deck_card WHERE card_id = :targetId AND board = 'mainboard'
+              )
+            GROUP BY c.id, c.name, c.colors
+            ORDER BY deck_count DESC
+            LIMIT $limit
+        """.trimIndent()
+
+        val rows = entityManager.createNativeQuery(sql)
+            .setParameter("targetId", card.id)
+            .resultList as List<Array<Any?>>
+
+        val cooccurrences = rows.map { row ->
+            CooccurringCard(
+                id = row[0] as UUID,
+                name = row[1] as String,
+                colors = parseColors(row[2]),
+                deckCount = (row[3] as Number).toLong(),
+            )
+        }
+        return CardCooccurrence(cardName = card.name, deckCount = deckCount, cooccurrences = cooccurrences)
+    }
+
+    // Combines card metadata with its play statistics for the single-card view.
+    fun getCardDetail(name: String): CardDetail? {
+        val card = cardRepository.findByName(name) ?: return null
+        val stats = getStatisticsForCardName(name)
+        return CardDetail(
+            id = card.id,
+            name = card.name,
+            manaCost = card.manaCost,
+            cmc = card.cmc,
+            typeLine = card.typeLine,
+            oracleText = card.oracleText,
+            power = card.power,
+            toughness = card.toughness,
+            colors = card.colors.toList(),
+            rarity = card.rarity,
+            setCode = card.setCode,
+            imageUri = card.imageUri,
+            mainboardDeckCount = stats?.mainboardDeckCount ?: 0,
+            sideboardDeckCount = stats?.sideboardDeckCount ?: 0,
+            avgMainboardQuantity = stats?.avgMainboardQuantity,
+            avgSideboardQuantity = stats?.avgSideboardQuantity,
+            avgTotalQuantity = stats?.avgTotalQuantity,
+        )
     }
 
     private fun Array<Any?>.toCardStatistics() = CardStatistics(
