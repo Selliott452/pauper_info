@@ -15,16 +15,6 @@ class MoxfieldController(
     private val moxfieldDeckDetailSyncService: MoxfieldDeckDetailSyncService,
 ) {
 
-    @PostMapping("/sync-decks")
-    fun syncDecks(
-        @RequestParam cardName: String
-    ): ResponseEntity<String> {
-
-        moxfieldSyncService.syncDecksForCard(cardName)
-
-        return ResponseEntity.accepted().body("Deck sync started for cardName=$cardName")
-    }
-
     @PostMapping("/sync-all-decks")
     fun syncAllDecks(): ResponseEntity<String> {
 
