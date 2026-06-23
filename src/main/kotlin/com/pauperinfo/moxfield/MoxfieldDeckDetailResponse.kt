@@ -60,4 +60,13 @@ data class MoxfieldCardRef(
 
     @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("legalities")
+    val legalities: Map<String, String> = emptyMap(),
+
+    @JsonProperty("type_line")
+    val typeLine: String? = null,
+
+    @JsonProperty("oracle_text")
+    val oracleText: String? = null,
 )

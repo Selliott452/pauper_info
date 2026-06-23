@@ -15,6 +15,10 @@ data class DeckSummary(
     val author: String?,
 
     val colors: List<Color>,
+
+    val archetype: String?,
+
+    val archetypeConfidence: String?,
 )
 
 // Full deck view: metadata header plus the resolved decklist.
@@ -31,6 +35,10 @@ data class DeckDetail(
     val createdAt: OffsetDateTime?,
 
     val updatedAt: OffsetDateTime?,
+
+    val archetype: String?,
+
+    val archetypeConfidence: String?,
 
     val mainboard: List<DeckCardEntry>,
 

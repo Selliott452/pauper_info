@@ -27,7 +27,21 @@ CREATE TABLE IF NOT EXISTS deck (
     author      TEXT,
     colors      TEXT[],
     created_at  TIMESTAMPTZ,
-    updated_at  TIMESTAMPTZ
+    updated_at  TIMESTAMPTZ,
+    archetype   TEXT,
+    archetype_confidence TEXT
+);
+
+ALTER TABLE deck ADD COLUMN IF NOT EXISTS archetype TEXT;
+ALTER TABLE deck ADD COLUMN IF NOT EXISTS archetype_confidence TEXT;
+
+-- Per-archetype card profiles scraped from mtgdecks (maindeck inclusion rates).
+-- These drive the archetype classifier.
+CREATE TABLE IF NOT EXISTS archetype_card (
+    archetype TEXT NOT NULL,
+    card_name TEXT NOT NULL,
+    inclusion REAL NOT NULL,
+    PRIMARY KEY (archetype, card_name)
 );
 
 CREATE TABLE IF NOT EXISTS deck_card (

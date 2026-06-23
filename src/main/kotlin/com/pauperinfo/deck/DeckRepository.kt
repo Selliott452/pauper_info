@@ -11,4 +11,10 @@ interface DeckRepository : JpaRepository<Deck, String> {
     fun upsert(id: String)
 
     fun findAllByNameIsNull(): List<Deck>
+
+    @Query("SELECT d.id FROM Deck d")
+    fun findAllDeckIds(): List<String>
+
+    @Query("SELECT d.id FROM Deck d WHERE d.name IS NULL")
+    fun findIdsByNameIsNull(): List<String>
 }

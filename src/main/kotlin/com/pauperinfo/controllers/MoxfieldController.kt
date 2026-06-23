@@ -33,9 +33,10 @@ class MoxfieldController(
         return ResponseEntity.accepted().body("Full deck sync started")
     }
 
+    // all=true re-fetches and re-validates every deck (applies pauper legality).
     @PostMapping("/sync-deck-details")
-    fun syncDeckDetails(): ResponseEntity<String> {
-        moxfieldDeckDetailSyncService.syncDeckDetails()
-        return ResponseEntity.accepted().body("Deck detail sync started")
+    fun syncDeckDetails(@RequestParam(defaultValue = "false") all: Boolean): ResponseEntity<String> {
+        moxfieldDeckDetailSyncService.syncDeckDetails(all)
+        return ResponseEntity.accepted().body("Deck detail sync started (all=$all)")
     }
 }

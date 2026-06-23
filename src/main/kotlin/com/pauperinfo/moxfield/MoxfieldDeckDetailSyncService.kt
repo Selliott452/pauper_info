@@ -24,35 +24,38 @@ class MoxfieldDeckDetailSyncService(
 
     private val log = LoggerFactory.getLogger(MoxfieldDeckDetailSyncService::class.java)
 
+    // all=false: fetch decks we haven't fetched yet (resumable, name IS NULL).
+    // all=true: re-fetch and re-validate every deck (e.g. to apply legality rules).
     @Async
-    fun syncDeckDetails() {
+    fun syncDeckDetails(all: Boolean = false) {
         // Resolve deck cards to our canonical card by name. The card table holds one
         // printing per card (Scryfall unique=cards), but decks reference arbitrary
         // printings, so joining on scryfall_id would miss most matches.
         val nameToId = cardRepository.findAll().associate { it.name to it.id }
         log.info("Loaded ${nameToId.size} cards for name resolution")
 
-        val pending = deckRepository.findAllByNameIsNull()
-        log.info("Deck detail sync starting: ${pending.size} decks to fetch")
+        val pending = if (all) deckRepository.findAllDeckIds() else deckRepository.findIdsByNameIsNull()
+        log.info("Deck detail sync starting: ${pending.size} decks to fetch (all=$all)")
 
         val completed = AtomicInteger(0)
+        val illegal = AtomicInteger(0)
         val failed = AtomicInteger(0)
         val executor = Executors.newFixedThreadPool(THREAD_COUNT)
 
-        pending.forEach { deck ->
+        pending.forEach { deckId ->
             executor.submit {
                 try {
-                    fetchAndPersist(deck.id, nameToId)
+                    if (!fetchAndPersist(deckId, nameToId)) illegal.incrementAndGet()
                     val done = completed.incrementAndGet()
                     if (done % 500 == 0) {
-                        log.info("Deck detail sync progress: $done / ${pending.size} (${failed.get()} failed)")
+                        log.info("Deck detail sync progress: $done / ${pending.size} (${illegal.get()} illegal removed, ${failed.get()} failed)")
                     }
                 } catch (e: DeckNotFoundException) {
-                    log.info("Deleting deck ${deck.id} — no longer exists on Moxfield")
-                    deckRepository.deleteById(deck.id)
+                    log.info("Deleting deck $deckId — no longer exists on Moxfield")
+                    deckRepository.deleteById(deckId)
                     failed.incrementAndGet()
                 } catch (e: Exception) {
-                    log.warn("Failed to fetch deck ${deck.id}: ${e.message}")
+                    log.warn("Failed to fetch deck $deckId: ${e.message}")
                     failed.incrementAndGet()
                 }
             }
@@ -60,12 +63,18 @@ class MoxfieldDeckDetailSyncService(
 
         executor.shutdown()
         executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS)
-        log.info("Deck detail sync complete: ${completed.get()} succeeded, ${failed.get()} failed")
+        log.info("Deck detail sync complete: ${completed.get()} processed, ${illegal.get()} illegal removed, ${failed.get()} failed")
     }
 
+    // Returns false (and deletes the deck) if it is not pauper-legal.
     @Transactional
-    fun fetchAndPersist(publicId: String, nameToId: Map<String, UUID>) {
+    fun fetchAndPersist(publicId: String, nameToId: Map<String, UUID>): Boolean {
         val detail = moxfieldClient.fetchDeckDetail(publicId)
+
+        if (!DeckLegality.isPauperLegal(detail)) {
+            deckRepository.deleteById(publicId)
+            return false
+        }
 
         // Resolve each entry to a canonical card id by name, dropping cards we don't
         // track. Sum quantities per (card, board) so duplicate printings collapse to
@@ -89,6 +98,7 @@ class MoxfieldDeckDetailSyncService(
             cards = cards,
         )
         deckRepository.save(deck)
+        return true
     }
 
     companion object {

@@ -17,6 +17,14 @@ class DeckQueryService(
     fun getDeck(id: String): DeckDetail? {
         val deck = deckRepository.findById(id).orElse(null) ?: return null
 
+        // archetype is maintained by the classifier (JDBC), not the Deck entity,
+        // so read the column directly to avoid the sync ever clobbering it.
+        val archetypeRow = entityManager.createNativeQuery(
+            "SELECT archetype, archetype_confidence FROM deck WHERE id = :id"
+        ).setParameter("id", id).resultList.firstOrNull() as Array<*>?
+        val archetype = archetypeRow?.get(0) as String?
+        val archetypeConfidence = archetypeRow?.get(1) as String?
+
         // Resolve card metadata for every line in one batch.
         val cardIds = deck.cards.map { it.cardId }.distinct()
         val cardsById = cardRepository.findAllById(cardIds).associateBy { it.id }
@@ -45,6 +53,8 @@ class DeckQueryService(
             colors = deck.colors?.toList() ?: emptyList(),
             createdAt = deck.createdAt,
             updatedAt = deck.updatedAt,
+            archetype = archetype,
+            archetypeConfidence = archetypeConfidence,
             mainboard = entriesFor("mainboard"),
             sideboard = entriesFor("sideboard"),
         )
@@ -59,6 +69,8 @@ class DeckQueryService(
         exactColors: Boolean,
         author: String?,
         name: String?,
+        archetypes: List<String>?,
+        confidences: List<String>?,
         mainboardCards: List<String>?,
         sideboardCards: List<String>?,
     ): DeckFilter? {
@@ -88,6 +100,14 @@ class DeckQueryService(
                 add("d.name ILIKE :name")
                 params["name"] = "%$name%"
             }
+            if (!archetypes.isNullOrEmpty()) {
+                add("d.archetype IN (:archetypes)")
+                params["archetypes"] = archetypes
+            }
+            if (!confidences.isNullOrEmpty()) {
+                add("d.archetype_confidence IN (:confidences)")
+                params["confidences"] = confidences
+            }
             // Deck must contain every required card in the given board.
             if (mainboardIds != null) {
                 add(containmentClause("mainboard", "mbIds", mainboardIds.size))
@@ -108,15 +128,17 @@ class DeckQueryService(
         exactColors: Boolean,
         author: String?,
         name: String?,
+        archetypes: List<String>?,
+        confidences: List<String>?,
         mainboardCards: List<String>?,
         sideboardCards: List<String>?,
         limit: Int,
         offset: Int,
     ): List<DeckSummary> {
-        val filter = buildFilter(colors, exactColors, author, name, mainboardCards, sideboardCards)
+        val filter = buildFilter(colors, exactColors, author, name, archetypes, confidences, mainboardCards, sideboardCards)
             ?: return emptyList()
         val sql = """
-            SELECT d.id, d.name, d.author, d.colors
+            SELECT d.id, d.name, d.author, d.colors, d.archetype, d.archetype_confidence
             FROM deck d
             ${filter.whereClause}
             ORDER BY d.updated_at DESC NULLS LAST
@@ -133,10 +155,12 @@ class DeckQueryService(
         exactColors: Boolean,
         author: String?,
         name: String?,
+        archetypes: List<String>?,
+        confidences: List<String>?,
         mainboardCards: List<String>?,
         sideboardCards: List<String>?,
     ): Long {
-        val filter = buildFilter(colors, exactColors, author, name, mainboardCards, sideboardCards)
+        val filter = buildFilter(colors, exactColors, author, name, archetypes, confidences, mainboardCards, sideboardCards)
             ?: return 0
         val sql = "SELECT COUNT(*) FROM deck d ${filter.whereClause}"
         val query = entityManager.createNativeQuery(sql)
@@ -159,6 +183,8 @@ class DeckQueryService(
         name = this[1] as String?,
         author = this[2] as String?,
         colors = parseColors(this[3]),
+        archetype = this[4] as String?,
+        archetypeConfidence = this[5] as String?,
     )
 
     private fun parseColors(value: Any?): List<Color> = when (value) {

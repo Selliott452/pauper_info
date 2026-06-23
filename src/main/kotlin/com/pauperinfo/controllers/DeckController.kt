@@ -21,10 +21,12 @@ class DeckController(private val deckQueryService: DeckQueryService) {
         @RequestParam(defaultValue = "within") colorMatch: String,
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) name: String?,
+        @RequestParam(required = false) archetypes: List<String>?,
+        @RequestParam(required = false) confidences: List<String>?,
         @RequestParam(required = false) mainboardCards: List<String>?,
         @RequestParam(required = false) sideboardCards: List<String>?,
     ): Long = deckQueryService.countDecks(
-        parseColors(colors), colorMatch == "exact", author, name, mainboardCards, sideboardCards,
+        parseColors(colors), colorMatch == "exact", author, name, archetypes, confidences, mainboardCards, sideboardCards,
     )
 
     @GetMapping("/{id}")
@@ -39,12 +41,14 @@ class DeckController(private val deckQueryService: DeckQueryService) {
         @RequestParam(defaultValue = "within") colorMatch: String,
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) name: String?,
+        @RequestParam(required = false) archetypes: List<String>?,
+        @RequestParam(required = false) confidences: List<String>?,
         @RequestParam(required = false) mainboardCards: List<String>?,
         @RequestParam(required = false) sideboardCards: List<String>?,
         @RequestParam(defaultValue = "50") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
     ): List<DeckSummary> = deckQueryService.listDecks(
-        parseColors(colors), colorMatch == "exact", author, name, mainboardCards, sideboardCards, limit, offset,
+        parseColors(colors), colorMatch == "exact", author, name, archetypes, confidences, mainboardCards, sideboardCards, limit, offset,
     )
 
     private fun parseColors(colors: List<String>?): List<Color>? = colors?.map { input ->
