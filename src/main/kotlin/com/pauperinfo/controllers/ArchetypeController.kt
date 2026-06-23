@@ -6,6 +6,7 @@ import com.pauperinfo.archetype.ArchetypeQueryService
 import com.pauperinfo.archetype.ArchetypeScore
 import com.pauperinfo.archetype.ArchetypeScrapeService
 import com.pauperinfo.archetype.ArchetypeSummary
+import com.pauperinfo.archetype.CardArchetype
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -30,6 +31,11 @@ class ArchetypeController(
         val detail = archetypeQueryService.get(name)
         return if (detail != null) ResponseEntity.ok(detail) else ResponseEntity.notFound().build()
     }
+
+    // Archetypes a given card belongs to (for the card detail page).
+    @GetMapping("/by-card/{name}")
+    fun byCard(@PathVariable name: String): List<CardArchetype> =
+        archetypeQueryService.archetypesForCard(name)
 
     @PostMapping("/scrape")
     fun scrape(): ResponseEntity<String> {

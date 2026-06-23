@@ -21,14 +21,17 @@ class ScryfallPageProcessor(
     @Transactional
     fun processPage(scryfallCards: List<ScryfallCard>) {
         val incoming = scryfallCards.map { it.toEntity() }
-        val ids = incoming.map { it.id }
 
-        val existingById = cardRepository.findAllById(ids).associateBy { it.id }
+        // Cards are keyed on a surrogate id, so dedupe incoming rows against the
+        // external Scryfall id (scryfall_id).
+        val existingByScryfall = cardRepository
+            .findByScryfallIdIn(incoming.map { it.scryfallId })
+            .associateBy { it.scryfallId }
 
-        val (newCards, existingCards) = incoming.partition { existingById[it.id] == null }
+        val (newCards, existingCards) = incoming.partition { existingByScryfall[it.scryfallId] == null }
 
         cardRepository.saveAll(newCards)
-        val updated = updateChangedLegalities(existingCards, existingById)
+        val updated = updateChangedLegalities(existingCards, existingByScryfall)
 
         log.info("Page processed: inserted=${newCards.size}, updated=$updated, unchanged=${existingCards.size - updated}")
     }
@@ -36,28 +39,30 @@ class ScryfallPageProcessor(
     /**
      * Re-syncs legality for cards we already have. We treat a card's legality map as
      * the only mutable thing about it (printings/oracle text don't change for an
-     * existing id), so for each existing card whose incoming legalities differ from
-     * the stored ones, we replace the stored set. Returns how many were updated.
+     * existing Scryfall id), so for each existing card whose incoming legalities
+     * differ from the stored ones, we replace the stored set. Returns how many were
+     * updated. Keyed on the external Scryfall id (incoming cards aren't persisted, so
+     * they have no surrogate id yet).
      */
     private fun updateChangedLegalities(
         cards: List<Card>,
-        existingById: Map<UUID, Card>
+        existingByScryfall: Map<UUID, Card>
     ): Int {
         val toUpdate = cards.filter { card ->
             val incomingLegalities = card.legalities.associate { it.id.format to it.status }
-            val existingLegalities = existingById[card.id]!!.legalities.associate { it.id.format to it.status }
+            val existingLegalities = existingByScryfall.getValue(card.scryfallId).legalities.associate { it.id.format to it.status }
             incomingLegalities != existingLegalities
         }
 
         toUpdate.forEach { card ->
-            val existing = existingById[card.id]!!
+            val existing = existingByScryfall.getValue(card.scryfallId)
             existing.legalities.clear()
             existing.legalities.addAll(
                 card.legalities.map { CardLegality(CardLegalityId(existing.id, it.id.format), existing, it.status) }
             )
         }
 
-        cardRepository.saveAll(toUpdate.map { existingById[it.id]!! })
+        cardRepository.saveAll(toUpdate.map { existingByScryfall.getValue(it.scryfallId) })
 
         return toUpdate.size
     }
@@ -79,7 +84,7 @@ class ScryfallPageProcessor(
         val resolvedBackImageUri = faces.getOrNull(1)?.imageUris?.get("normal")
 
         val card = Card(
-            id = id,
+            scryfallId = id,
             name = name,
             manaCost = resolvedManaCost,
             cmc = cmc,

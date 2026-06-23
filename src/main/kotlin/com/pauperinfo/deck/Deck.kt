@@ -8,8 +8,15 @@ import java.time.OffsetDateTime
 @Table(name = "deck")
 class Deck(
 
+    // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
+    // deck. The API identifies decks by publicId, not this.
     @Id
-    val id: String,
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Int = 0,
+
+    // Moxfield public id — the external identifier we fetch by and expose in the API.
+    @Column(name = "public_id")
+    val publicId: String,
 
     val name: String? = null,
 

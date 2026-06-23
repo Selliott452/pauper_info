@@ -9,8 +9,15 @@ import java.util.UUID
 @Entity
 @Table(name = "card")
 class Card(
+    // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
+    // card. The API identifies cards by scryfallId, not this.
     @Id
-    val id: UUID,
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Int = 0,
+
+    // Scryfall id — the external identifier we expose in the API.
+    @Column(name = "scryfall_id")
+    val scryfallId: UUID,
 
     val name: String,
 

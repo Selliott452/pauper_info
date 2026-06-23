@@ -4,6 +4,7 @@ import com.pauperinfo.card.enums.CardType
 import com.pauperinfo.card.enums.Color
 import com.pauperinfo.card.enums.ColorColumn
 import com.pauperinfo.card.repositories.CardRepository
+import com.pauperinfo.deck.Board
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import org.slf4j.LoggerFactory
@@ -135,9 +136,9 @@ class CardStatisticsService(
         ).resultStream as Stream<Array<Any?>>
 
         // Rows arrive grouped by card_id; accumulate one card at a time and emit a
-        // stats row when the card changes.
+        // stats row when the card changes. All ids are the narrow surrogate ints.
         val rows = ArrayList<CardStatsRow>()
-        var currentId: UUID? = null
+        var currentId: Int? = null
         var acc = StatsAccumulator()
 
         fun flush() {
@@ -146,13 +147,17 @@ class CardStatisticsService(
 
         stream.use {
             it.forEach { row ->
-                val cardId = row[0] as UUID
+                val cardId = (row[0] as Number).toInt()
                 if (cardId != currentId) {
                     flush()
                     currentId = cardId
                     acc = StatsAccumulator()
                 }
-                acc.add(board = row[2] as String, quantity = (row[3] as Number).toInt(), deckId = row[1] as String)
+                acc.add(
+                    board = (row[2] as Number).toInt(),
+                    quantity = (row[3] as Number).toInt(),
+                    deckId = (row[1] as Number).toInt(),
+                )
             }
         }
         flush()
@@ -174,7 +179,7 @@ class CardStatisticsService(
             ).use { ps ->
                 var i = 0
                 for (r in rows) {
-                    ps.setObject(1, r.cardId)
+                    ps.setInt(1, r.cardId)
                     ps.setInt(2, r.mainboardCount)
                     ps.setInt(3, r.sideboardCount)
                     ps.setNullableDouble(4, r.avgMainboardQuantity)
@@ -198,21 +203,23 @@ class CardStatisticsService(
     fun getCooccurrences(name: String, limit: Int): CardCooccurrence? {
         val card = cardRepository.findByName(name) ?: return null
 
+        // board = 0 is the mainboard (Board enum ordinal). targetId is the surrogate id.
         val deckCount = (entityManager.createNativeQuery(
-            "SELECT COUNT(DISTINCT deck_id) FROM deck_card WHERE card_id = :targetId AND board = 'mainboard'"
+            "SELECT COUNT(DISTINCT deck_id) FROM deck_card WHERE card_id = :targetId AND board = 0"
         ).setParameter("targetId", card.id).singleResult as Number).toLong()
 
         // limit is an integer — safe to inline. targetId is a bound parameter.
+        // scryfall_id is exposed as the card id (c.id is the internal surrogate).
         val sql = """
-            SELECT c.id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
+            SELECT c.scryfall_id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
             FROM deck_card dc
             JOIN card c ON c.id = dc.card_id
-            WHERE dc.board = 'mainboard'
+            WHERE dc.board = 0
               AND dc.card_id <> :targetId
               AND dc.deck_id IN (
-                  SELECT deck_id FROM deck_card WHERE card_id = :targetId AND board = 'mainboard'
+                  SELECT deck_id FROM deck_card WHERE card_id = :targetId AND board = 0
               )
-            GROUP BY c.id, c.name, c.colors
+            GROUP BY c.scryfall_id, c.name, c.colors
             ORDER BY deck_count DESC
             LIMIT $limit
         """.trimIndent()
@@ -237,7 +244,7 @@ class CardStatisticsService(
         val card = cardRepository.findByName(name) ?: return null
         val stats = getStatisticsForCardName(name)
         return CardDetail(
-            id = card.id,
+            id = card.scryfallId,
             name = card.name,
             manaCost = card.manaCost,
             cmc = card.cmc,
@@ -269,9 +276,9 @@ class CardStatisticsService(
         avgTotalQuantity = (this[7] as? Number)?.toDouble(),
     )
 
-    // A computed stats row, ready to persist.
+    // A computed stats row, ready to persist (cardId is the surrogate id).
     private data class CardStatsRow(
-        val cardId: UUID,
+        val cardId: Int,
         val mainboardCount: Int,
         val sideboardCount: Int,
         val avgMainboardQuantity: Double?,
@@ -281,25 +288,26 @@ class CardStatisticsService(
 
     // Accumulates one card's deck_card rows. Each (deck, card, board) is unique, so a
     // board's row count is its distinct-deck count; avg_total divides total copies by
-    // the distinct decks playing the card across either board.
+    // the distinct decks playing the card across either board. board/deckId are the
+    // smallint board ordinal and surrogate deck id.
     private class StatsAccumulator {
         private var mainboardCount = 0
         private var sideboardCount = 0
         private var mainboardCopies = 0L
         private var sideboardCopies = 0L
         private var totalCopies = 0L
-        private val decks = HashSet<String>()
+        private val decks = HashSet<Int>()
 
-        fun add(board: String, quantity: Int, deckId: String) {
+        fun add(board: Int, quantity: Int, deckId: Int) {
             decks.add(deckId)
             totalCopies += quantity
             when (board) {
-                "mainboard" -> { mainboardCount++; mainboardCopies += quantity }
-                "sideboard" -> { sideboardCount++; sideboardCopies += quantity }
+                Board.MAINBOARD.ordinal -> { mainboardCount++; mainboardCopies += quantity }
+                Board.SIDEBOARD.ordinal -> { sideboardCount++; sideboardCopies += quantity }
             }
         }
 
-        fun toRow(cardId: UUID) = CardStatsRow(
+        fun toRow(cardId: Int) = CardStatsRow(
             cardId = cardId,
             mainboardCount = mainboardCount,
             sideboardCount = sideboardCount,
@@ -312,9 +320,10 @@ class CardStatisticsService(
     companion object {
         // Reads the precomputed per-card aggregates (card_play_stats). Unplayed cards
         // have no stats row, so counts coalesce to 0 and averages stay null. The
-        // aliases match CardStatSort.column so callers can ORDER BY them.
+        // aliases match CardStatSort.column so callers can ORDER BY them. scryfall_id
+        // is exposed as the card's id (the surrogate c.id is internal only).
         private val SELECT_FROM = """
-            SELECT c.id, c.name, c.colors,
+            SELECT c.scryfall_id, c.name, c.colors,
               coalesce(s.mainboard_count, 0) AS mainboard_count,
               coalesce(s.sideboard_count, 0) AS sideboard_count,
               s.avg_mainboard_qty AS avg_mainboard_qty,

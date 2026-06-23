@@ -15,27 +15,27 @@ class DeckQueryService(
     private val cardRepository: CardRepository,
 ) {
 
-    fun getDeck(id: String): DeckDetail? {
-        val deck = deckRepository.findById(id).orElse(null) ?: return null
+    fun getDeck(publicId: String): DeckDetail? {
+        val deck = deckRepository.findByPublicId(publicId) ?: return null
 
         // archetype is maintained by the classifier (JDBC), not the Deck entity,
         // so read the column directly to avoid the sync ever clobbering it.
         val archetypeRow = entityManager.createNativeQuery(
-            "SELECT archetype, archetype_confidence FROM deck WHERE id = :id"
-        ).setParameter("id", id).resultList.firstOrNull() as Array<*>?
+            "SELECT archetype, archetype_confidence FROM deck WHERE public_id = :id"
+        ).setParameter("id", publicId).resultList.firstOrNull() as Array<*>?
         val archetype = archetypeRow?.get(0) as String?
         val archetypeConfidence = archetypeRow?.get(1) as String?
 
-        // Resolve card metadata for every line in one batch.
+        // Resolve card metadata for every line in one batch (cardId is the surrogate).
         val cardIds = deck.cards.map { it.cardId }.distinct()
         val cardsById = cardRepository.findAllById(cardIds).associateBy { it.id }
 
-        fun entriesFor(board: String) = deck.cards
+        fun entriesFor(board: Board) = deck.cards
             .filter { it.board == board }
             .mapNotNull { dc ->
                 val card = cardsById[dc.cardId] ?: return@mapNotNull null
                 DeckCardEntry(
-                    cardId = card.id,
+                    cardId = card.scryfallId,
                     name = card.name,
                     manaCost = card.manaCost,
                     cmc = card.cmc,
@@ -48,7 +48,7 @@ class DeckQueryService(
             .sortedBy { it.name }
 
         return DeckDetail(
-            id = deck.id,
+            id = deck.publicId,
             name = deck.name,
             author = deck.author,
             colors = deck.colors?.toList() ?: emptyList(),
@@ -56,8 +56,8 @@ class DeckQueryService(
             updatedAt = deck.updatedAt,
             archetype = archetype,
             archetypeConfidence = archetypeConfidence,
-            mainboard = entriesFor("mainboard"),
-            sideboard = entriesFor("sideboard"),
+            mainboard = entriesFor(Board.MAINBOARD),
+            sideboard = entriesFor(Board.SIDEBOARD),
         )
     }
 
@@ -111,11 +111,11 @@ class DeckQueryService(
             }
             // Deck must contain every required card in the given board.
             if (mainboardIds != null) {
-                add(containmentClause("mainboard", "mbIds", mainboardIds.size))
+                add(containmentClause(Board.MAINBOARD, "mbIds", mainboardIds.size))
                 params["mbIds"] = mainboardIds
             }
             if (sideboardIds != null) {
-                add(containmentClause("sideboard", "sbIds", sideboardIds.size))
+                add(containmentClause(Board.SIDEBOARD, "sbIds", sideboardIds.size))
                 params["sbIds"] = sideboardIds
             }
         }
@@ -139,7 +139,7 @@ class DeckQueryService(
         val filter = buildFilter(colors, exactColors, author, name, archetypes, confidences, mainboardCards, sideboardCards)
             ?: return emptyList()
         val sql = """
-            SELECT d.id, d.name, d.author, d.colors, d.archetype, d.archetype_confidence
+            SELECT d.public_id, d.name, d.author, d.colors, d.archetype, d.archetype_confidence
             FROM deck d
             ${filter.whereClause}
             ORDER BY d.updated_at DESC NULLS LAST
@@ -170,10 +170,11 @@ class DeckQueryService(
     }
 
     // Subquery requiring a deck to contain all of the given cards in one board.
-    private fun containmentClause(board: String, paramKey: String, count: Int) = """
+    // board is the Board enum ordinal stored in the smallint column.
+    private fun containmentClause(board: Board, paramKey: String, count: Int) = """
         d.id IN (
             SELECT deck_id FROM deck_card
-            WHERE card_id IN (:$paramKey) AND board = '$board'
+            WHERE card_id IN (:$paramKey) AND board = ${board.ordinal}
             GROUP BY deck_id
             HAVING COUNT(DISTINCT card_id) = $count
         )

@@ -1,28 +1,35 @@
+-- Cards. id is an internal surrogate key; scryfall_id is the external identifier
+-- (what the API exposes). Decks reference cards by the surrogate to keep the large
+-- deck_card table narrow.
 CREATE TABLE IF NOT EXISTS card (
-    id UUID PRIMARY KEY,
-    name TEXT NOT NULL,
-    mana_cost TEXT,
-    cmc NUMERIC NOT NULL,
-    type_line TEXT NOT NULL,
+    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    scryfall_id UUID NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    mana_cost   TEXT,
+    cmc         NUMERIC NOT NULL,
+    type_line   TEXT NOT NULL,
     oracle_text TEXT,
-    power TEXT,
-    toughness TEXT,
-    colors TEXT[],
-    rarity TEXT NOT NULL,
-    set_code TEXT NOT NULL,
-    image_uri TEXT,
+    power       TEXT,
+    toughness   TEXT,
+    colors      TEXT[],
+    rarity      TEXT NOT NULL,
+    set_code    TEXT NOT NULL,
+    image_uri   TEXT,
     back_image_uri TEXT
 );
 
 CREATE TABLE IF NOT EXISTS card_legality (
-    card_id UUID NOT NULL REFERENCES card(id),
-    format TEXT NOT NULL,
-    status TEXT NOT NULL,
+    card_id INT NOT NULL REFERENCES card(id),
+    format  TEXT NOT NULL,
+    status  TEXT NOT NULL,
     PRIMARY KEY (card_id, format)
 );
 
+-- Decks. id is an internal surrogate key; public_id is the Moxfield public id
+-- (what the API exposes and what we fetch by).
 CREATE TABLE IF NOT EXISTS deck (
-    id          TEXT PRIMARY KEY,
+    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    public_id   TEXT NOT NULL UNIQUE,
     name        TEXT,
     author      TEXT,
     colors      TEXT[],
@@ -31,9 +38,6 @@ CREATE TABLE IF NOT EXISTS deck (
     archetype   TEXT,
     archetype_confidence TEXT
 );
-
-ALTER TABLE deck ADD COLUMN IF NOT EXISTS archetype TEXT;
-ALTER TABLE deck ADD COLUMN IF NOT EXISTS archetype_confidence TEXT;
 
 -- Per-archetype card profiles scraped from mtgdecks (maindeck inclusion rates).
 -- These drive the archetype classifier.
@@ -55,25 +59,21 @@ CREATE TABLE IF NOT EXISTS archetype_matchup (
     PRIMARY KEY (archetype, opponent)
 );
 
+-- The big table: one row per (deck, card, board). Keys are the narrow surrogate
+-- ints and board is a smallint (Board enum ordinal: 0 = mainboard, 1 = sideboard)
+-- to keep it as small as possible — it dominates the database size.
 CREATE TABLE IF NOT EXISTS deck_card (
-    deck_id  TEXT NOT NULL REFERENCES deck(id),
-    card_id  UUID NOT NULL,
-    quantity INT  NOT NULL,
-    board    TEXT NOT NULL,
+    deck_id  INT NOT NULL REFERENCES deck(id),
+    card_id  INT NOT NULL REFERENCES card(id),
+    quantity SMALLINT NOT NULL,
+    board    SMALLINT NOT NULL,
     PRIMARY KEY (deck_id, card_id, board)
 );
 
 -- Speeds up card-centric lookups that filter deck_card by card_id (and board):
 -- co-occurrence (CardStatisticsService.getCooccurrences) and the deck "contains
 -- card" filter (DeckQueryService.containmentClause). The PK is keyed on deck_id
--- first, so it can't serve these.
---
--- Indexed on (card_id, board) only — deliberately NOT covering on deck_id. There
--- are few distinct card_ids over millions of rows, so B-tree deduplication keeps
--- this tiny (~27 MB); adding the near-unique deck_id defeats dedup and bloated it
--- ~18x. Queries fetch deck_id from the heap, which is cheap given card_id is
--- selective. (Drops the old idx_deck_card_card_board_deck if present.)
-DROP INDEX IF EXISTS idx_deck_card_card_board_deck;
+-- first, so it can't serve these. Not covering on deck_id (kept out to stay small).
 CREATE INDEX IF NOT EXISTS idx_deck_card_card_board ON deck_card (card_id, board);
 
 -- Precomputed per-card play statistics. The card-statistics grid aggregates
@@ -85,7 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_deck_card_card_board ON deck_card (card_id, board
 -- Only cards that see play get a row; unplayed cards are absent and the grid's
 -- left join treats them as zero.
 CREATE TABLE IF NOT EXISTS card_play_stats (
-    card_id           UUID PRIMARY KEY,
+    card_id           INT PRIMARY KEY REFERENCES card(id),
     mainboard_count   INT NOT NULL,
     sideboard_count   INT NOT NULL,
     avg_mainboard_qty DOUBLE PRECISION,

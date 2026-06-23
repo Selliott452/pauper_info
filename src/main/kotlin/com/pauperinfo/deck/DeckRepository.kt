@@ -4,17 +4,19 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 
-interface DeckRepository : JpaRepository<Deck, String> {
+interface DeckRepository : JpaRepository<Deck, Int> {
 
+    // Insert a freshly-discovered deck by its Moxfield public id (details filled in
+    // later). The surrogate id is assigned by the database.
     @Modifying
-    @Query(value = "INSERT INTO deck(id) VALUES (:id) ON CONFLICT DO NOTHING", nativeQuery = true)
-    fun upsert(id: String)
+    @Query(value = "INSERT INTO deck(public_id) VALUES (:publicId) ON CONFLICT DO NOTHING", nativeQuery = true)
+    fun upsert(publicId: String)
 
-    fun findAllByNameIsNull(): List<Deck>
+    fun findByPublicId(publicId: String): Deck?
 
-    @Query("SELECT d.id FROM Deck d")
-    fun findAllDeckIds(): List<String>
+    @Query("SELECT d.publicId FROM Deck d")
+    fun findAllPublicIds(): List<String>
 
-    @Query("SELECT d.id FROM Deck d WHERE d.name IS NULL")
-    fun findIdsByNameIsNull(): List<String>
+    @Query("SELECT d.publicId FROM Deck d WHERE d.name IS NULL")
+    fun findPublicIdsByNameIsNull(): List<String>
 }

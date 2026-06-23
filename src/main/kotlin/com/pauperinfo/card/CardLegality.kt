@@ -4,7 +4,6 @@ import com.pauperinfo.card.enums.Format
 import com.pauperinfo.card.enums.LegalityStatus
 import jakarta.persistence.*
 import java.io.Serializable
-import java.util.UUID
 
 @Entity
 @Table(name = "card_legality")
@@ -23,7 +22,8 @@ class CardLegality(
 
 @Embeddable
 data class CardLegalityId(
-    val cardId: UUID,
+    // Surrogate card id (card.id).
+    val cardId: Int,
 
     @Enumerated(EnumType.STRING)
     val format: Format

@@ -23,14 +23,15 @@ class ArchetypeClassificationService(
     private fun buildClassifier(threshold: Double) =
         ArchetypeClassifier(archetypeCardRepository.findAll(), threshold)
 
-    /** Debug: ranked archetype scores for a single deck's mainboard. */
+    /** Debug: ranked archetype scores for a single deck's mainboard (by public id). */
     @Suppress("UNCHECKED_CAST")
     fun rankForDeck(deckId: String, limit: Int): List<ArchetypeScore> {
         val cards = entityManager.createNativeQuery(
             """
             SELECT c.name FROM deck_card dc
             JOIN card c ON c.id = dc.card_id
-            WHERE dc.deck_id = :id AND dc.board = 'mainboard'
+            JOIN deck d ON d.id = dc.deck_id
+            WHERE d.public_id = :id AND dc.board = 0
             """.trimIndent()
         ).setParameter("id", deckId).resultList as List<String>
 
@@ -47,13 +48,13 @@ class ArchetypeClassificationService(
         val classifier = buildClassifier(threshold)
         log.info("Classifying decks into archetypes (threshold=$threshold)")
 
-        // deckId -> (archetype, confidence). confidence is null for Other.
-        val labels = HashMap<String, Pair<String, String?>>()
+        // surrogate deck id -> (archetype, confidence). confidence is null for Other.
+        val labels = HashMap<Int, Pair<String, String?>>()
         val stream = entityManager.createNativeQuery(
             """
             SELECT dc.deck_id, c.name FROM deck_card dc
             JOIN card c ON c.id = dc.card_id
-            WHERE dc.board = 'mainboard'
+            WHERE dc.board = 0
             ORDER BY dc.deck_id
             """.trimIndent()
         ).resultStream as Stream<Array<Any?>>
@@ -64,27 +65,27 @@ class ArchetypeClassificationService(
             return if (best == null) OTHER to null else best to classifier.confidence(ranked)
         }
 
-        var current: String? = null
+        var current: Int? = null
         val cards = ArrayList<String>()
         stream.use {
             it.forEach { row ->
-                val deckId = row[0] as String
+                val deckId = (row[0] as Number).toInt()
                 if (deckId != current) {
-                    if (current != null) labels[current!!] = label(cards)
+                    current?.let { labels[it] = label(cards) }
                     current = deckId
                     cards.clear()
                 }
                 cards.add(row[1] as String)
             }
         }
-        if (current != null) labels[current!!] = label(cards)
+        current?.let { labels[it] = label(cards) }
 
         persist(labels)
         val classified = labels.values.count { it.first != OTHER }
         log.info("Archetype classification complete: ${labels.size} decks (${classified} matched, ${labels.size - classified} Other)")
     }
 
-    private fun persist(labels: Map<String, Pair<String, String?>>) {
+    private fun persist(labels: Map<Int, Pair<String, String?>>) {
         dataSource.connection.use { conn ->
             conn.autoCommit = false
             conn.prepareStatement("UPDATE deck SET archetype = ?, archetype_confidence = ? WHERE id = ?").use { ps ->
@@ -92,7 +93,7 @@ class ArchetypeClassificationService(
                 for ((id, label) in labels) {
                     ps.setString(1, label.first)
                     ps.setString(2, label.second)
-                    ps.setString(3, id)
+                    ps.setInt(3, id)
                     ps.addBatch()
                     if (++i % 1000 == 0) ps.executeBatch()
                 }

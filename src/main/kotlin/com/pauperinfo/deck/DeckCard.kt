@@ -1,14 +1,17 @@
 package com.pauperinfo.deck
 
+import jakarta.persistence.EnumType
 import jakarta.persistence.Embeddable
-import java.util.UUID
+import jakarta.persistence.Enumerated
 
 @Embeddable
 data class DeckCard(
 
-    val cardId: UUID,
+    // Surrogate card id (card.id), not the Scryfall id.
+    val cardId: Int,
 
     val quantity: Int,
 
-    val board: String,
+    @Enumerated(EnumType.ORDINAL)
+    val board: Board,
 )
