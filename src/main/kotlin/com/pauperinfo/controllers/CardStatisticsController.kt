@@ -11,6 +11,7 @@ import com.pauperinfo.card.statistics.SortDirection
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -55,6 +56,13 @@ class CardStatisticsController(
 
     @GetMapping("/names")
     fun cardNames(): List<String> = cardStatisticsService.getAllCardNames()
+
+    // Recomputes the precomputed per-card play statistics; run after a deck sync.
+    @PostMapping("/statistics/refresh")
+    fun refreshStatistics(): ResponseEntity<String> {
+        cardStatisticsService.refreshStatistics()
+        return ResponseEntity.accepted().body("Card statistics refresh started")
+    }
 
     @GetMapping("/{name}/statistics")
     fun statisticsForCard(@PathVariable name: String): ResponseEntity<CardStatistics> {

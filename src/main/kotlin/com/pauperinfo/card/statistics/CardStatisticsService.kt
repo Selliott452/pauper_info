@@ -6,14 +6,24 @@ import com.pauperinfo.card.enums.ColorColumn
 import com.pauperinfo.card.repositories.CardRepository
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
+import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.sql.PreparedStatement
+import java.sql.Types
 import java.util.UUID
+import java.util.stream.Stream
+import javax.sql.DataSource
 
 @Service
 class CardStatisticsService(
     @PersistenceContext private val entityManager: EntityManager,
     private val cardRepository: CardRepository,
+    private val dataSource: DataSource,
 ) {
+
+    private val log = LoggerFactory.getLogger(CardStatisticsService::class.java)
 
     @Suppress("UNCHECKED_CAST")
     fun getStatistics(
@@ -70,24 +80,18 @@ class CardStatisticsService(
                 }
                 add("(${typeClauses.joinToString(" OR ")})")
             }
+            // Minimum play thresholds filter the precomputed counts directly (no
+            // aggregation needed). Unplayed cards have no stats row, so coalesce to 0.
+            // Bound integers — safe to inline.
+            if (minMainboardDecks != null) {
+                add("coalesce(s.mainboard_count, 0) >= $minMainboardDecks")
+            }
+            if (minSideboardDecks != null) {
+                add("coalesce(s.sideboard_count, 0) >= $minSideboardDecks")
+            }
         }
         if (where.isNotEmpty()) {
             sql.append(" WHERE ${where.joinToString(" AND ")} ")
-        }
-
-        sql.append(GROUP_BY)
-
-        // minMainboardDecks / minSideboardDecks are bound integers — safe to inline.
-        val having = buildList {
-            if (minMainboardDecks != null) {
-                add("COUNT(DISTINCT CASE WHEN dc.board = 'mainboard' THEN dc.deck_id END) >= $minMainboardDecks")
-            }
-            if (minSideboardDecks != null) {
-                add("COUNT(DISTINCT CASE WHEN dc.board = 'sideboard' THEN dc.deck_id END) >= $minSideboardDecks")
-            }
-        }
-        if (having.isNotEmpty()) {
-            sql.append(" HAVING ${having.joinToString(" AND ")} ")
         }
 
         // sortBy.column and direction are enum-derived, limit/offset are integers — all safe to inline.
@@ -103,7 +107,7 @@ class CardStatisticsService(
 
     @Suppress("UNCHECKED_CAST")
     fun getStatisticsForCardName(name: String): CardStatistics? {
-        val sql = SELECT_FROM + " WHERE c.name = :name " + GROUP_BY
+        val sql = "$SELECT_FROM WHERE c.name = :name"
         val rows = entityManager.createNativeQuery(sql)
             .setParameter("name", name)
             .resultList as List<Array<Any?>>
@@ -111,6 +115,83 @@ class CardStatisticsService(
     }
 
     fun getAllCardNames(): List<String> = cardRepository.findAllNames()
+
+    /**
+     * Recomputes the per-card play statistics (card_play_stats) from deck_card.
+     *
+     * Streams every deck_card row ordered by card, aggregates each card's counts
+     * and averages in memory, then replaces the table in one batch. This is the
+     * expensive work the grid used to do per request; run it after a deck sync
+     * (POST /api/cards/statistics/refresh).
+     */
+    @Async
+    @Transactional
+    @Suppress("UNCHECKED_CAST")
+    fun refreshStatistics() {
+        log.info("Refreshing card play statistics")
+
+        val stream = entityManager.createNativeQuery(
+            "SELECT card_id, deck_id, board, quantity FROM deck_card ORDER BY card_id"
+        ).resultStream as Stream<Array<Any?>>
+
+        // Rows arrive grouped by card_id; accumulate one card at a time and emit a
+        // stats row when the card changes.
+        val rows = ArrayList<CardStatsRow>()
+        var currentId: UUID? = null
+        var acc = StatsAccumulator()
+
+        fun flush() {
+            currentId?.let { rows.add(acc.toRow(it)) }
+        }
+
+        stream.use {
+            it.forEach { row ->
+                val cardId = row[0] as UUID
+                if (cardId != currentId) {
+                    flush()
+                    currentId = cardId
+                    acc = StatsAccumulator()
+                }
+                acc.add(board = row[2] as String, quantity = (row[3] as Number).toInt(), deckId = row[1] as String)
+            }
+        }
+        flush()
+
+        persistStatistics(rows)
+        log.info("Card play statistics refreshed: ${rows.size} cards")
+    }
+
+    private fun persistStatistics(rows: List<CardStatsRow>) {
+        dataSource.connection.use { conn ->
+            conn.autoCommit = false
+            conn.createStatement().use { it.executeUpdate("TRUNCATE card_play_stats") }
+            conn.prepareStatement(
+                """
+                INSERT INTO card_play_stats
+                  (card_id, mainboard_count, sideboard_count, avg_mainboard_qty, avg_sideboard_qty, avg_total_qty)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """.trimIndent()
+            ).use { ps ->
+                var i = 0
+                for (r in rows) {
+                    ps.setObject(1, r.cardId)
+                    ps.setInt(2, r.mainboardCount)
+                    ps.setInt(3, r.sideboardCount)
+                    ps.setNullableDouble(4, r.avgMainboardQuantity)
+                    ps.setNullableDouble(5, r.avgSideboardQuantity)
+                    ps.setNullableDouble(6, r.avgTotalQuantity)
+                    ps.addBatch()
+                    if (++i % 1000 == 0) ps.executeBatch()
+                }
+                ps.executeBatch()
+            }
+            conn.commit()
+        }
+    }
+
+    private fun PreparedStatement.setNullableDouble(index: Int, value: Double?) {
+        if (value == null) setNull(index, Types.DOUBLE) else setDouble(index, value)
+    }
 
     // Cards that share mainboard decks with the target card, by distinct deck count.
     @Suppress("UNCHECKED_CAST")
@@ -188,18 +269,59 @@ class CardStatisticsService(
         avgTotalQuantity = (this[7] as? Number)?.toDouble(),
     )
 
+    // A computed stats row, ready to persist.
+    private data class CardStatsRow(
+        val cardId: UUID,
+        val mainboardCount: Int,
+        val sideboardCount: Int,
+        val avgMainboardQuantity: Double?,
+        val avgSideboardQuantity: Double?,
+        val avgTotalQuantity: Double?,
+    )
+
+    // Accumulates one card's deck_card rows. Each (deck, card, board) is unique, so a
+    // board's row count is its distinct-deck count; avg_total divides total copies by
+    // the distinct decks playing the card across either board.
+    private class StatsAccumulator {
+        private var mainboardCount = 0
+        private var sideboardCount = 0
+        private var mainboardCopies = 0L
+        private var sideboardCopies = 0L
+        private var totalCopies = 0L
+        private val decks = HashSet<String>()
+
+        fun add(board: String, quantity: Int, deckId: String) {
+            decks.add(deckId)
+            totalCopies += quantity
+            when (board) {
+                "mainboard" -> { mainboardCount++; mainboardCopies += quantity }
+                "sideboard" -> { sideboardCount++; sideboardCopies += quantity }
+            }
+        }
+
+        fun toRow(cardId: UUID) = CardStatsRow(
+            cardId = cardId,
+            mainboardCount = mainboardCount,
+            sideboardCount = sideboardCount,
+            avgMainboardQuantity = if (mainboardCount > 0) mainboardCopies.toDouble() / mainboardCount else null,
+            avgSideboardQuantity = if (sideboardCount > 0) sideboardCopies.toDouble() / sideboardCount else null,
+            avgTotalQuantity = if (decks.isNotEmpty()) totalCopies.toDouble() / decks.size else null,
+        )
+    }
+
     companion object {
+        // Reads the precomputed per-card aggregates (card_play_stats). Unplayed cards
+        // have no stats row, so counts coalesce to 0 and averages stay null. The
+        // aliases match CardStatSort.column so callers can ORDER BY them.
         private val SELECT_FROM = """
             SELECT c.id, c.name, c.colors,
-              COUNT(DISTINCT CASE WHEN dc.board = 'mainboard' THEN dc.deck_id END) AS mainboard_count,
-              COUNT(DISTINCT CASE WHEN dc.board = 'sideboard' THEN dc.deck_id END) AS sideboard_count,
-              AVG(CASE WHEN dc.board = 'mainboard' THEN dc.quantity END) AS avg_mainboard_qty,
-              AVG(CASE WHEN dc.board = 'sideboard' THEN dc.quantity END) AS avg_sideboard_qty,
-              SUM(dc.quantity)::float / NULLIF(COUNT(DISTINCT dc.deck_id), 0) AS avg_total_qty
+              coalesce(s.mainboard_count, 0) AS mainboard_count,
+              coalesce(s.sideboard_count, 0) AS sideboard_count,
+              s.avg_mainboard_qty AS avg_mainboard_qty,
+              s.avg_sideboard_qty AS avg_sideboard_qty,
+              s.avg_total_qty AS avg_total_qty
             FROM card c
-            LEFT JOIN deck_card dc ON dc.card_id = c.id
+            LEFT JOIN card_play_stats s ON s.card_id = c.id
         """.trimIndent()
-
-        private const val GROUP_BY = " GROUP BY c.id, c.name, c.colors "
     }
 }

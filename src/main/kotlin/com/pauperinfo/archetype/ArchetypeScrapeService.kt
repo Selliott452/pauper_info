@@ -2,6 +2,7 @@ package com.pauperinfo.archetype
 
 import com.pauperinfo.card.repositories.CardRepository
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
@@ -12,6 +13,7 @@ import java.util.Base64
 class ArchetypeScrapeService(
     private val client: MtgDecksClient,
     private val archetypeCardRepository: ArchetypeCardRepository,
+    private val archetypeMatchupRepository: ArchetypeMatchupRepository,
     private val cardRepository: CardRepository,
 ) {
 
@@ -31,7 +33,16 @@ class ArchetypeScrapeService(
             if (front != full) nameMap.putIfAbsent(front, full)
         }
 
-        val archetypes = archetypeSlugs()
+        // The winrates page serves double duty: it lists every archetype (the slugs
+        // we crawl for card profiles) and holds the head-to-head matchup matrix.
+        val winratesDoc = Jsoup.parse(client.fetch("$BASE/Pauper/winrates"))
+
+        val matchups = parseMatchups(winratesDoc)
+        archetypeMatchupRepository.deleteAllInBatch()
+        archetypeMatchupRepository.saveAll(matchups)
+        log.info("Stored ${matchups.size} archetype matchup rows")
+
+        val archetypes = archetypeSlugs(winratesDoc)
         log.info("Scraping ${archetypes.size} archetype profiles from mtgdecks")
 
         val rows = mutableListOf<ArchetypeCard>()
@@ -55,8 +66,7 @@ class ArchetypeScrapeService(
     }
 
     // Display name -> slug, taken from the archetype links on the winrates matrix.
-    private fun archetypeSlugs(): Map<String, String> {
-        val doc = Jsoup.parse(client.fetch("$BASE/Pauper/winrates"))
+    private fun archetypeSlugs(doc: Document): Map<String, String> {
         val bySlug = LinkedHashMap<String, String>()
         for (a in doc.select("a[href]")) {
             val href = a.attr("href")
@@ -95,6 +105,30 @@ class ArchetypeScrapeService(
         return profile
     }
 
+    // Parses the win-rate matrix (table#winrates) into (archetype vs opponent) rows.
+    // Columns are [row-label, "Overall", opponent, opponent, ...]; each row's data
+    // cells line up with the headers starting at index 1. Cells with no recorded
+    // games are blank (no data-winrate) and are skipped. The "Overall" column is
+    // kept as a matchup against the OVERALL pseudo-opponent (aggregate win rate).
+    private fun parseMatchups(doc: Document): List<ArchetypeMatchup> {
+        val table = doc.selectFirst("table#winrates") ?: return emptyList()
+        val headers = table.select("thead th").map { it.text().trim() }
+
+        val rows = mutableListOf<ArchetypeMatchup>()
+        for (row in table.select("tbody tr.item")) {
+            val archetype = row.attr("data-name").trim()
+            if (archetype.isBlank()) continue
+            row.select("td.winrate-cell").forEachIndexed { i, cell ->
+                val opponent = headers.getOrNull(i + 1) ?: return@forEachIndexed
+                val winrate = cell.attr("data-winrate").toIntOrNull() ?: return@forEachIndexed
+                val matches = cell.selectFirst(".matches-number")?.text()
+                    ?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                rows.add(ArchetypeMatchup(archetype, opponent, winrate, matches))
+            }
+        }
+        return rows
+    }
+
     // mtgdecks hides nav targets in a base64 `goto` attribute (URL-safe or standard).
     private fun decodeGoto(value: String): String {
         val normalized = value.replace('-', '+').replace('_', '/')
@@ -103,6 +137,10 @@ class ArchetypeScrapeService(
     }
 
     companion object {
+        // The win-rate matrix's "Overall" column: an archetype's aggregate win rate
+        // across all matchups, stored as a matchup against this pseudo-opponent.
+        const val OVERALL = "Overall"
+
         private const val BASE = "https://mtgdecks.net"
         private val ARCHETYPE_HREF = Regex("/Pauper/([a-z0-9-]+)")
         private val NON_ARCHETYPE_SLUGS = setOf(

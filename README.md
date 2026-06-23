@@ -82,21 +82,33 @@ curl -X POST http://localhost:8080/api/moxfield/sync-deck-details
 curl -X POST "http://localhost:8080/api/moxfield/sync-deck-details?all=true"
 ```
 
-### 4. Scrape archetype profiles from mtgdecks
+### 4. Refresh card play statistics
 
-Scrapes the per-archetype card-inclusion profiles used to classify decks, storing
-them in `archetype_card`. Uses the `card` table to map double-faced card
-front-face names to their full names, so run this **after** step 1. Requires the
-sidecar.
+Recomputes the precomputed per-card statistics (deck counts and average
+quantities) that power the card-statistics grid, so the grid doesn't aggregate
+across every deck on each request. Run **after** step 3 (and any time the deck
+data changes).
+
+```bash
+curl -X POST http://localhost:8080/api/cards/statistics/refresh
+```
+
+### 5. Scrape archetype profiles + matchups from mtgdecks
+
+Scrapes two things from mtgdecks: the per-archetype card-inclusion profiles used
+to classify decks (stored in `archetype_card`), and the head-to-head matchup
+win-rate matrix (stored in `archetype_matchup`, surfaced on each archetype page).
+Uses the `card` table to map double-faced card front-face names to their full
+names, so run this **after** step 1. Requires the sidecar.
 
 ```bash
 curl -X POST http://localhost:8080/api/archetypes/scrape
 ```
 
-### 5. Classify decks into archetypes
+### 6. Classify decks into archetypes
 
 Scores every deck's mainboard against each archetype profile and stores the
-assigned archetype plus a confidence label. Run **after** steps 3 and 4, and
+assigned archetype plus a confidence label. Run **after** steps 3 and 5, and
 re-run any time decks or profiles change.
 
 ```bash
@@ -110,6 +122,7 @@ curl -X POST "http://localhost:8080/api/archetypes/classify?threshold=0.15"
 1. scryfall/sync              → cards
 2. moxfield/sync-all-decks    → deck IDs
 3. moxfield/sync-deck-details → decklists + legality filtering
-4. archetypes/scrape          → archetype profiles
-5. archetypes/classify        → deck archetype labels
+4. cards/statistics/refresh   → precomputed card play stats
+5. archetypes/scrape          → archetype profiles + matchups
+6. archetypes/classify        → deck archetype labels
 ```
