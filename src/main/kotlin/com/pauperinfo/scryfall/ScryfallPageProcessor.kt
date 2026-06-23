@@ -34,9 +34,10 @@ class ScryfallPageProcessor(
     }
 
     /**
-     * Assuming that the only thing that can "change" about a card is it's legality
-     * We save all new cards in processPage and then check if the legality status has changed
-     * on any existing cards and if so propagate them.
+     * Re-syncs legality for cards we already have. We treat a card's legality map as
+     * the only mutable thing about it (printings/oracle text don't change for an
+     * existing id), so for each existing card whose incoming legalities differ from
+     * the stored ones, we replace the stored set. Returns how many were updated.
      */
     private fun updateChangedLegalities(
         cards: List<Card>,

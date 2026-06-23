@@ -10,5 +10,13 @@ enum class CardType(val label: String) {
     LAND("Land"),
     PLANESWALKER("Planeswalker"),
     BATTLE("Battle"),
-    KINDRED("Kindred"),
+    KINDRED("Kindred");
+
+    companion object {
+        // Resolves a request-supplied type, accepting either the label ("Creature")
+        // or the enum name ("CREATURE"), case-insensitively.
+        fun fromInput(value: String): CardType =
+            entries.firstOrNull { it.label.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) }
+                ?: throw IllegalArgumentException("Unknown type: $value")
+    }
 }

@@ -77,13 +77,7 @@ class CardStatisticsController(
         return if (result != null) ResponseEntity.ok(result) else ResponseEntity.notFound().build()
     }
 
-    private fun parseColors(colors: List<String>?): List<Color>? = colors?.map { input ->
-        Color.entries.firstOrNull { it.code.equals(input, ignoreCase = true) || it.name.equals(input, ignoreCase = true) }
-            ?: throw IllegalArgumentException("Unknown color: $input")
-    }
+    private fun parseColors(colors: List<String>?): List<Color>? = colors?.map(Color::fromInput)
 
-    private fun parseTypes(types: List<String>?): List<CardType>? = types?.map { input ->
-        CardType.entries.firstOrNull { it.label.equals(input, ignoreCase = true) || it.name.equals(input, ignoreCase = true) }
-            ?: throw IllegalArgumentException("Unknown type: $input")
-    }
+    private fun parseTypes(types: List<String>?): List<CardType>? = types?.map(CardType::fromInput)
 }

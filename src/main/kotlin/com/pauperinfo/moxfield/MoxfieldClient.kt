@@ -33,65 +33,59 @@ class MoxfieldClient {
             "&fmt=pauper" +
             "&cardName=$encodedName"
 
-        rateLimiter.acquire()
-        repeat(3) { attempt ->
-            val proxyResponse = proxyClient.post()
-                .uri(URI.create("http://localhost:8081/fetch"))
-                .header("Content-Type", "application/json")
-                .body("""{"url":"$url"}""")
-                .retrieve()
-                .body(ProxyResponse::class.java)!!
-
-            when (proxyResponse.status) {
-                200 -> return objectMapper.readValue(proxyResponse.body, MoxfieldDeckSearchResponse::class.java)
-                403 -> {
-                    log.warn("Got 403 for cardName=$cardName page=$pageNumber (attempt ${attempt + 1}/3), retrying")
-                    Thread.sleep(2000)
-                }
-                429 -> {
-                    log.warn("Rate limited for cardName=$cardName page=$pageNumber (attempt ${attempt + 1}/3), backing off 10s")
-                    Thread.sleep(10000)
-                }
-                else -> throw RuntimeException("Moxfield returned ${proxyResponse.status} for cardName=$cardName page=$pageNumber")
-            }
-        }
-
-        throw RuntimeException("Exhausted retries for cardName=$cardName page=$pageNumber")
+        val body = fetchThroughProxy(url, "cardName=$cardName page=$pageNumber")
+        return objectMapper.readValue(body, MoxfieldDeckSearchResponse::class.java)
     }
 
     fun fetchDeckDetail(publicId: String): MoxfieldDeckDetailResponse {
         val url = "https://api2.moxfield.com/v3/decks/all/$publicId"
+        val body = fetchThroughProxy(url, "deck $publicId") { throw DeckNotFoundException(publicId) }
+        return objectMapper.readValue(body, MoxfieldDeckDetailResponse::class.java)
+    }
 
+    /**
+     * Fetches [url] through the curl_cffi sidecar and returns the raw response body.
+     *
+     * Moxfield intermittently returns 403 (Cloudflare) and 429 (rate limit), so we
+     * retry with short backoffs. [label] is only for log/error context. [onNotFound]
+     * lets a caller translate a 404 into a domain exception (a missing deck); when
+     * unset, a 404 is treated like any other unexpected status.
+     */
+    private fun fetchThroughProxy(
+        url: String,
+        label: String,
+        onNotFound: (() -> Nothing)? = null,
+    ): String {
         rateLimiter.acquire()
-        repeat(3) { attempt ->
-            val proxyResponse = proxyClient.post()
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val response = proxyClient.post()
                 .uri(URI.create("http://localhost:8081/fetch"))
                 .header("Content-Type", "application/json")
                 .body("""{"url":"$url"}""")
                 .retrieve()
                 .body(ProxyResponse::class.java)!!
 
-            when (proxyResponse.status) {
-                200 -> return objectMapper.readValue(proxyResponse.body, MoxfieldDeckDetailResponse::class.java)
+            when (response.status) {
+                200 -> return response.body
                 403 -> {
-                    log.warn("Got 403 for deck $publicId (attempt ${attempt + 1}/3), retrying")
+                    log.warn("Got 403 for $label (attempt ${attempt + 1}/$MAX_ATTEMPTS), retrying")
                     Thread.sleep(2000)
                 }
                 429 -> {
-                    log.warn("Rate limited for deck $publicId (attempt ${attempt + 1}/3), backing off 10s")
+                    log.warn("Rate limited for $label (attempt ${attempt + 1}/$MAX_ATTEMPTS), backing off 10s")
                     Thread.sleep(10000)
                 }
-                404 -> throw DeckNotFoundException(publicId)
-                else -> throw RuntimeException("Moxfield returned ${proxyResponse.status} for deck $publicId")
+                404 -> onNotFound?.invoke() ?: throw RuntimeException("Moxfield returned 404 for $label")
+                else -> throw RuntimeException("Moxfield returned ${response.status} for $label")
             }
         }
-
-        throw RuntimeException("Exhausted retries for deck $publicId")
+        throw RuntimeException("Exhausted retries for $label")
     }
 
     companion object {
         const val POOL_SIZE = 50
         const val REQUESTS_PER_SECOND = 20.0
+        private const val MAX_ATTEMPTS = 3
     }
 
     private data class ProxyResponse(val status: Int, val body: String)

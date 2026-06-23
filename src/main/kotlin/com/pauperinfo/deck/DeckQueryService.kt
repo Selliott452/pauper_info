@@ -1,6 +1,7 @@
 package com.pauperinfo.deck
 
 import com.pauperinfo.card.enums.Color
+import com.pauperinfo.card.enums.ColorColumn
 import com.pauperinfo.card.repositories.CardRepository
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
@@ -182,16 +183,8 @@ class DeckQueryService(
         id = this[0] as String,
         name = this[1] as String?,
         author = this[2] as String?,
-        colors = parseColors(this[3]),
+        colors = ColorColumn.parse(this[3]),
         archetype = this[4] as String?,
         archetypeConfidence = this[5] as String?,
     )
-
-    private fun parseColors(value: Any?): List<Color> = when (value) {
-        null -> emptyList()
-        is java.sql.Array -> (value.array as Array<*>).map { Color.valueOf(it as String) }
-        is Array<*> -> value.map { Color.valueOf(it as String) }
-        is String -> value.trim('{', '}').split(',').filter { it.isNotBlank() }.map { Color.valueOf(it.trim('"')) }
-        else -> emptyList()
-    }
 }

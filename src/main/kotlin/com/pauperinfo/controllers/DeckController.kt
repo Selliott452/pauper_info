@@ -51,8 +51,5 @@ class DeckController(private val deckQueryService: DeckQueryService) {
         parseColors(colors), colorMatch == "exact", author, name, archetypes, confidences, mainboardCards, sideboardCards, limit, offset,
     )
 
-    private fun parseColors(colors: List<String>?): List<Color>? = colors?.map { input ->
-        Color.entries.firstOrNull { it.code.equals(input, ignoreCase = true) || it.name.equals(input, ignoreCase = true) }
-            ?: throw IllegalArgumentException("Unknown color: $input")
-    }
+    private fun parseColors(colors: List<String>?): List<Color>? = colors?.map(Color::fromInput)
 }

@@ -2,11 +2,11 @@ package com.pauperinfo.card.statistics
 
 import com.pauperinfo.card.enums.CardType
 import com.pauperinfo.card.enums.Color
+import com.pauperinfo.card.enums.ColorColumn
 import com.pauperinfo.card.repositories.CardRepository
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import org.springframework.stereotype.Service
-import java.sql.Array as SqlArray
 import java.util.UUID
 
 @Service
@@ -144,7 +144,7 @@ class CardStatisticsService(
             CooccurringCard(
                 id = row[0] as UUID,
                 name = row[1] as String,
-                colors = parseColors(row[2]),
+                colors = ColorColumn.parse(row[2]),
                 deckCount = (row[3] as Number).toLong(),
             )
         }
@@ -180,25 +180,13 @@ class CardStatisticsService(
     private fun Array<Any?>.toCardStatistics() = CardStatistics(
         id = this[0] as UUID,
         name = this[1] as String,
-        colors = parseColors(this[2]),
+        colors = ColorColumn.parse(this[2]),
         mainboardDeckCount = (this[3] as Number).toLong(),
         sideboardDeckCount = (this[4] as Number).toLong(),
         avgMainboardQuantity = (this[5] as? Number)?.toDouble(),
         avgSideboardQuantity = (this[6] as? Number)?.toDouble(),
         avgTotalQuantity = (this[7] as? Number)?.toDouble(),
     )
-
-    private fun parseColors(value: Any?): List<Color> = when (value) {
-        null -> emptyList()
-        is SqlArray -> (value.array as Array<*>).map { Color.valueOf(it as String) }
-        is Array<*> -> value.map { Color.valueOf(it as String) }
-        // Postgres returns array columns as their text representation, e.g. "{BLUE,WHITE}".
-        is String -> value.trim('{', '}')
-            .split(',')
-            .filter { it.isNotBlank() }
-            .map { Color.valueOf(it.trim('"')) }
-        else -> emptyList()
-    }
 
     companion object {
         private val SELECT_FROM = """
