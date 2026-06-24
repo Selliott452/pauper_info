@@ -25,7 +25,8 @@ class WebConfig(
         if (origins.isNotEmpty()) {
             registry.addMapping("/api/**")
                 .allowedOrigins(*origins.toTypedArray())
-                .allowedMethods("GET", "POST")
+                .allowedMethods("GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
         }
     }
 }
