@@ -58,6 +58,13 @@ class Player(
 
     var name: String,
 
+    // What this player ran in this event: a free-text archetype and an optional
+    // deck link (e.g. Moxfield).
+    var archetype: String? = null,
+
+    @Column(name = "deck_url")
+    var deckUrl: String? = null,
+
     // Dropped players are no longer paired, but their played matches still count
     // toward opponents' tiebreakers.
     var dropped: Boolean = false,

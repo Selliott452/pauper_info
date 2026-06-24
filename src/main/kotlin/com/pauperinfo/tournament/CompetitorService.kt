@@ -61,6 +61,8 @@ class CompetitorService(
             )
         }.sortedByDescending { it.eventId }
 
+        val breakdown = breakdown(players)
+
         return CompetitorDetail(
             id = competitor.id,
             name = competitor.name,
@@ -71,7 +73,85 @@ class CompetitorService(
             matchWinPct = career.matchWinPct(),
             gameWinPct = career.gameWinPct(),
             results = results,
+            archetypesPlayed = breakdown.archetypesPlayed(),
+            vsPlayers = breakdown.vsPlayers(),
+            vsArchetypes = breakdown.vsArchetypes(),
         )
+    }
+
+    private enum class Outcome { WIN, LOSS, DRAW }
+
+    private class Tally {
+        var wins = 0
+        var losses = 0
+        var draws = 0
+        fun add(o: Outcome) {
+            when (o) {
+                Outcome.WIN -> wins++
+                Outcome.LOSS -> losses++
+                Outcome.DRAW -> draws++
+            }
+        }
+        fun total() = wins + losses + draws
+    }
+
+    private class Breakdown {
+        // Keyed by the competitor's own archetype, by opponent, and by opponent archetype.
+        val byMyArchetype = LinkedHashMap<String?, Tally>()
+        val byOpponentArchetype = LinkedHashMap<String?, Tally>()
+        val byOpponent = LinkedHashMap<String, Triple<Int?, String, Tally>>()
+
+        fun archetypesPlayed() = byMyArchetype.entries
+            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws) }
+            .sortedByDescending { it.wins + it.losses + it.draws }
+
+        fun vsArchetypes() = byOpponentArchetype.entries
+            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws) }
+            .sortedByDescending { it.wins + it.losses + it.draws }
+
+        fun vsPlayers() = byOpponent.values
+            .map { (id, name, t) -> OpponentRecord(id, name, t.wins, t.losses, t.draws) }
+            .sortedByDescending { it.wins + it.losses + it.draws }
+    }
+
+    // Buckets every reported match a competitor played by their own archetype, by
+    // opponent, and by the opponent's archetype.
+    private fun breakdown(players: List<Player>): Breakdown {
+        val b = Breakdown()
+        if (players.isEmpty()) return b
+        val myPlayerIds = players.map { it.id }.toSet()
+        val archetypeByPlayerId = players.associate { it.id to it.archetype }
+
+        val matches = matchRepository.findByPlayerIds(myPlayerIds).filter { it.reported }
+        val opponentIds = matches.mapNotNull { m ->
+            if (m.player2Id == null) null else if (m.player1Id in myPlayerIds) m.player2Id else m.player1Id
+        }.toSet()
+        val opponents = playerRepository.findAllById(opponentIds).associateBy { it.id }
+
+        for (m in matches) {
+            val isPlayer1 = m.player1Id in myPlayerIds
+            val myPlayerId = if (isPlayer1) m.player1Id else m.player2Id!!
+            val outcome = when {
+                m.player2Id == null -> Outcome.WIN // bye
+                else -> {
+                    val mine = if (isPlayer1) m.player1Wins else m.player2Wins
+                    val theirs = if (isPlayer1) m.player2Wins else m.player1Wins
+                    if (mine > theirs) Outcome.WIN else if (mine < theirs) Outcome.LOSS else Outcome.DRAW
+                }
+            }
+            b.byMyArchetype.getOrPut(archetypeByPlayerId[myPlayerId]) { Tally() }.add(outcome)
+
+            if (m.player2Id != null) {
+                val opponentId = if (isPlayer1) m.player2Id!! else m.player1Id
+                val opponent = opponents[opponentId]
+                val key = opponent?.competitorId?.let { "c$it" } ?: "p$opponentId"
+                b.byOpponent.getOrPut(key) {
+                    Triple(opponent?.competitorId, opponent?.name ?: "?", Tally())
+                }.third.add(outcome)
+                b.byOpponentArchetype.getOrPut(opponent?.archetype) { Tally() }.add(outcome)
+            }
+        }
+        return b
     }
 
     // --- career aggregation across all of a competitor's matches --------------

@@ -25,6 +25,10 @@ data class CompetitorEventResult(
     val draws: Int,
 )
 
+// A match-record breakdown (wins/losses/draws) bucketed by some key.
+data class ArchetypeRecord(val archetype: String?, val wins: Int, val losses: Int, val draws: Int)
+data class OpponentRecord(val opponentId: Int?, val opponentName: String, val wins: Int, val losses: Int, val draws: Int)
+
 data class CompetitorDetail(
     val id: Int,
     val name: String,
@@ -35,6 +39,10 @@ data class CompetitorDetail(
     val matchWinPct: Double,
     val gameWinPct: Double,
     val results: List<CompetitorEventResult>,
+    // Decks they've run, and head-to-head records vs opponents and vs archetypes.
+    val archetypesPlayed: List<ArchetypeRecord>,
+    val vsPlayers: List<OpponentRecord>,
+    val vsArchetypes: List<ArchetypeRecord>,
 )
 
 // Request to create a tournament: a name, the player names, and optionally a fixed
@@ -75,12 +83,20 @@ data class TournamentSummary(
 )
 
 // A player's line in the standings, with the standard MTG tiebreakers as percents.
+// Set what a player ran in this event. Blank values clear the field.
+data class UpdatePlayerRequest(
+    val archetype: String? = null,
+    val deckUrl: String? = null,
+)
+
 data class PlayerStanding(
     val rank: Int,
     val playerId: Int,
     // The persistent competitor this player is, for linking to their career page.
     val competitorId: Int?,
     val name: String,
+    val archetype: String?,
+    val deckUrl: String?,
     val dropped: Boolean,
     val matchPoints: Int,
     val wins: Int,

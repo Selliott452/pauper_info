@@ -98,6 +98,30 @@ class SwissService(
         return detail(eventId)
     }
 
+    // Reinstate a dropped player so they're paired again.
+    @Transactional
+    fun rejoinPlayer(eventId: Int, playerId: Int): TournamentDetail {
+        requireActive(eventId)
+        val player = playerRepository.findById(playerId).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")
+        }
+        player.dropped = false
+        playerRepository.save(player)
+        return detail(eventId)
+    }
+
+    // Record (or clear) the archetype/deck a player ran. Allowed even when complete.
+    @Transactional
+    fun updatePlayer(eventId: Int, playerId: Int, request: UpdatePlayerRequest): TournamentDetail {
+        val player = playerRepository.findById(playerId).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")
+        }
+        player.archetype = request.archetype?.trim()?.takeIf { it.isNotEmpty() }
+        player.deckUrl = request.deckUrl?.trim()?.takeIf { it.isNotEmpty() }
+        playerRepository.save(player)
+        return detail(eventId)
+    }
+
     @Transactional
     fun reportResult(eventId: Int, matchId: Int, request: ReportResultRequest): TournamentDetail {
         requireActive(eventId)
@@ -348,6 +372,8 @@ class SwissService(
                 playerId = p.id,
                 competitorId = p.competitorId,
                 name = p.name,
+                archetype = p.archetype,
+                deckUrl = p.deckUrl,
                 dropped = p.dropped,
                 matchPoints = s.matchPoints,
                 wins = s.wins,

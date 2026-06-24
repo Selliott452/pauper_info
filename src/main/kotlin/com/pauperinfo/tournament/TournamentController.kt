@@ -71,4 +71,15 @@ class TournamentController(private val swissService: SwissService) {
     @PostMapping("/{id}/players/{playerId}/drop")
     fun drop(@PathVariable id: Int, @PathVariable playerId: Int): TournamentDetail =
         swissService.dropPlayer(id, playerId)
+
+    @PostMapping("/{id}/players/{playerId}/rejoin")
+    fun rejoin(@PathVariable id: Int, @PathVariable playerId: Int): TournamentDetail =
+        swissService.rejoinPlayer(id, playerId)
+
+    @PatchMapping("/{id}/players/{playerId}")
+    fun updatePlayer(
+        @PathVariable id: Int,
+        @PathVariable playerId: Int,
+        @RequestBody request: UpdatePlayerRequest,
+    ): TournamentDetail = swissService.updatePlayer(id, playerId, request)
 }
