@@ -11,7 +11,7 @@ import java.io.Serializable
 // recorded games. The special opponent "Overall" holds the archetype's aggregate
 // win rate across all matchups (see ArchetypeScrapeService.OVERALL).
 @Entity
-@Table(name = "archetype_matchup")
+@Table(name = "archetype_matchup", schema = "metagame")
 @IdClass(ArchetypeMatchupId::class)
 class ArchetypeMatchup(
 

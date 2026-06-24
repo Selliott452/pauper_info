@@ -9,7 +9,7 @@ interface DeckRepository : JpaRepository<Deck, Int> {
     // Insert a freshly-discovered deck by its Moxfield public id (details filled in
     // later). The surrogate id is assigned by the database.
     @Modifying
-    @Query(value = "INSERT INTO deck(public_id) VALUES (:publicId) ON CONFLICT DO NOTHING", nativeQuery = true)
+    @Query(value = "INSERT INTO metagame.deck(public_id) VALUES (:publicId) ON CONFLICT DO NOTHING", nativeQuery = true)
     fun upsert(publicId: String)
 
     fun findByPublicId(publicId: String): Deck?

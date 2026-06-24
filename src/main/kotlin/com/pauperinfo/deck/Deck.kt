@@ -5,7 +5,7 @@ import jakarta.persistence.*
 import java.time.OffsetDateTime
 
 @Entity
-@Table(name = "deck")
+@Table(name = "deck", schema = "metagame")
 class Deck(
 
     // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
@@ -33,6 +33,6 @@ class Deck(
     val updatedAt: OffsetDateTime? = null,
 
     @ElementCollection
-    @CollectionTable(name = "deck_card", joinColumns = [JoinColumn(name = "deck_id")])
+    @CollectionTable(name = "deck_card", schema = "metagame", joinColumns = [JoinColumn(name = "deck_id")])
     val cards: List<DeckCard> = emptyList(),
 )

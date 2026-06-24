@@ -29,6 +29,16 @@ class DeckController(private val deckQueryService: DeckQueryService) {
         parseColors(colors), colorMatch == "exact", author, name, archetypes, confidences, mainboardCards, sideboardCards,
     )
 
+    @GetMapping("/random")
+    fun random(
+        @RequestParam(required = false) archetypes: List<String>?,
+        @RequestParam(required = false) confidences: List<String>?,
+        @RequestParam(required = false) updatedWithinDays: Int?,
+    ): ResponseEntity<DeckSummary> {
+        val deck = deckQueryService.randomDeck(archetypes, confidences, updatedWithinDays)
+        return if (deck != null) ResponseEntity.ok(deck) else ResponseEntity.notFound().build()
+    }
+
     @GetMapping("/{id}")
     fun deck(@PathVariable id: String): ResponseEntity<DeckDetail> {
         val deck = deckQueryService.getDeck(id)

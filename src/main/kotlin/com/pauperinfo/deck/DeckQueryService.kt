@@ -21,7 +21,7 @@ class DeckQueryService(
         // archetype is maintained by the classifier (JDBC), not the Deck entity,
         // so read the column directly to avoid the sync ever clobbering it.
         val archetypeRow = entityManager.createNativeQuery(
-            "SELECT archetype, archetype_confidence FROM deck WHERE public_id = :id"
+            "SELECT archetype, archetype_confidence FROM metagame.deck WHERE public_id = :id"
         ).setParameter("id", publicId).resultList.firstOrNull() as Array<*>?
         val archetype = archetypeRow?.get(0) as String?
         val archetypeConfidence = archetypeRow?.get(1) as String?
@@ -74,6 +74,7 @@ class DeckQueryService(
         confidences: List<String>?,
         mainboardCards: List<String>?,
         sideboardCards: List<String>?,
+        updatedWithinDays: Int? = null,
     ): DeckFilter? {
         val mainboardIds = mainboardCards?.takeIf { it.isNotEmpty() }
             ?.map { cardRepository.findByName(it)?.id ?: return null }
@@ -109,6 +110,10 @@ class DeckQueryService(
                 add("d.archetype_confidence IN (:confidences)")
                 params["confidences"] = confidences
             }
+            // Updated within the last N days. N is a bound integer — safe to inline.
+            if (updatedWithinDays != null && updatedWithinDays > 0) {
+                add("d.updated_at >= now() - INTERVAL '$updatedWithinDays days'")
+            }
             // Deck must contain every required card in the given board.
             if (mainboardIds != null) {
                 add(containmentClause(Board.MAINBOARD, "mbIds", mainboardIds.size))
@@ -140,7 +145,7 @@ class DeckQueryService(
             ?: return emptyList()
         val sql = """
             SELECT d.public_id, d.name, d.author, d.colors, d.archetype, d.archetype_confidence
-            FROM deck d
+            FROM metagame.deck d
             ${filter.whereClause}
             ORDER BY d.updated_at DESC NULLS LAST
             LIMIT $limit OFFSET $offset
@@ -163,17 +168,39 @@ class DeckQueryService(
     ): Long {
         val filter = buildFilter(colors, exactColors, author, name, archetypes, confidences, mainboardCards, sideboardCards)
             ?: return 0
-        val sql = "SELECT COUNT(*) FROM deck d ${filter.whereClause}"
+        val sql = "SELECT COUNT(*) FROM metagame.deck d ${filter.whereClause}"
         val query = entityManager.createNativeQuery(sql)
         filter.params.forEach { (k, v) -> query.setParameter(k, v) }
         return (query.singleResult as Number).toLong()
+    }
+
+    // A single random deck matching the optional filters, or null if none match.
+    @Suppress("UNCHECKED_CAST")
+    fun randomDeck(
+        archetypes: List<String>?,
+        confidences: List<String>?,
+        updatedWithinDays: Int?,
+    ): DeckSummary? {
+        val filter = buildFilter(null, false, null, null, archetypes, confidences, null, null, updatedWithinDays)
+            ?: return null
+        val sql = """
+            SELECT d.public_id, d.name, d.author, d.colors, d.archetype, d.archetype_confidence
+            FROM metagame.deck d
+            ${filter.whereClause}
+            ORDER BY random()
+            LIMIT 1
+        """.trimIndent()
+        val query = entityManager.createNativeQuery(sql)
+        filter.params.forEach { (k, v) -> query.setParameter(k, v) }
+        val rows = query.resultList as List<Array<Any?>>
+        return rows.firstOrNull()?.toDeckSummary()
     }
 
     // Subquery requiring a deck to contain all of the given cards in one board.
     // board is the Board enum ordinal stored in the smallint column.
     private fun containmentClause(board: Board, paramKey: String, count: Int) = """
         d.id IN (
-            SELECT deck_id FROM deck_card
+            SELECT deck_id FROM metagame.deck_card
             WHERE card_id IN (:$paramKey) AND board = ${board.ordinal}
             GROUP BY deck_id
             HAVING COUNT(DISTINCT card_id) = $count

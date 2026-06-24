@@ -7,7 +7,7 @@ import java.math.BigDecimal
 import java.util.UUID
 
 @Entity
-@Table(name = "card")
+@Table(name = "card", schema = "metagame")
 class Card(
     // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
     // card. The API identifies cards by scryfallId, not this.

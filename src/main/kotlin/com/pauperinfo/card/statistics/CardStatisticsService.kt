@@ -132,7 +132,7 @@ class CardStatisticsService(
         log.info("Refreshing card play statistics")
 
         val stream = entityManager.createNativeQuery(
-            "SELECT card_id, deck_id, board, quantity FROM deck_card ORDER BY card_id"
+            "SELECT card_id, deck_id, board, quantity FROM metagame.deck_card ORDER BY card_id"
         ).resultStream as Stream<Array<Any?>>
 
         // Rows arrive grouped by card_id; accumulate one card at a time and emit a
@@ -169,10 +169,10 @@ class CardStatisticsService(
     private fun persistStatistics(rows: List<CardStatsRow>) {
         dataSource.connection.use { conn ->
             conn.autoCommit = false
-            conn.createStatement().use { it.executeUpdate("TRUNCATE card_play_stats") }
+            conn.createStatement().use { it.executeUpdate("TRUNCATE metagame.card_play_stats") }
             conn.prepareStatement(
                 """
-                INSERT INTO card_play_stats
+                INSERT INTO metagame.card_play_stats
                   (card_id, mainboard_count, sideboard_count, avg_mainboard_qty, avg_sideboard_qty, avg_total_qty)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """.trimIndent()
@@ -205,19 +205,19 @@ class CardStatisticsService(
 
         // board = 0 is the mainboard (Board enum ordinal). targetId is the surrogate id.
         val deckCount = (entityManager.createNativeQuery(
-            "SELECT COUNT(DISTINCT deck_id) FROM deck_card WHERE card_id = :targetId AND board = 0"
+            "SELECT COUNT(DISTINCT deck_id) FROM metagame.deck_card WHERE card_id = :targetId AND board = 0"
         ).setParameter("targetId", card.id).singleResult as Number).toLong()
 
         // limit is an integer — safe to inline. targetId is a bound parameter.
         // scryfall_id is exposed as the card id (c.id is the internal surrogate).
         val sql = """
             SELECT c.scryfall_id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count
-            FROM deck_card dc
-            JOIN card c ON c.id = dc.card_id
+            FROM metagame.deck_card dc
+            JOIN metagame.card c ON c.id = dc.card_id
             WHERE dc.board = 0
               AND dc.card_id <> :targetId
               AND dc.deck_id IN (
-                  SELECT deck_id FROM deck_card WHERE card_id = :targetId AND board = 0
+                  SELECT deck_id FROM metagame.deck_card WHERE card_id = :targetId AND board = 0
               )
             GROUP BY c.scryfall_id, c.name, c.colors
             ORDER BY deck_count DESC
@@ -329,8 +329,8 @@ class CardStatisticsService(
               s.avg_mainboard_qty AS avg_mainboard_qty,
               s.avg_sideboard_qty AS avg_sideboard_qty,
               s.avg_total_qty AS avg_total_qty
-            FROM card c
-            LEFT JOIN card_play_stats s ON s.card_id = c.id
+            FROM metagame.card c
+            LEFT JOIN metagame.card_play_stats s ON s.card_id = c.id
         """.trimIndent()
     }
 }

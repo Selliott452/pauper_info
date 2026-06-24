@@ -52,8 +52,8 @@ class ArchetypeQueryService(
         val rows = entityManager.createNativeQuery(
             """
             SELECT d.archetype, count(*) AS decks, m.winrate, m.matches
-            FROM deck d
-            LEFT JOIN archetype_matchup m
+            FROM metagame.deck d
+            LEFT JOIN metagame.archetype_matchup m
               ON m.archetype = d.archetype AND m.opponent = 'Overall'
             WHERE d.archetype IS NOT NULL
             GROUP BY d.archetype, m.winrate, m.matches
@@ -82,8 +82,8 @@ class ArchetypeQueryService(
         val rows = entityManager.createNativeQuery(
             """
             SELECT ac.archetype, col
-            FROM archetype_card ac
-            JOIN card c ON c.name = ac.card_name, unnest(c.colors) AS col
+            FROM metagame.archetype_card ac
+            JOIN metagame.card c ON c.name = ac.card_name, unnest(c.colors) AS col
             GROUP BY ac.archetype, col
             HAVING max(ac.inclusion) >= :threshold
             """.trimIndent()
@@ -98,8 +98,8 @@ class ArchetypeQueryService(
         val names = entityManager.createNativeQuery(
             """
             SELECT col
-            FROM archetype_card ac
-            JOIN card c ON c.name = ac.card_name, unnest(c.colors) AS col
+            FROM metagame.archetype_card ac
+            JOIN metagame.card c ON c.name = ac.card_name, unnest(c.colors) AS col
             WHERE ac.archetype = :name
             GROUP BY col
             HAVING max(ac.inclusion) >= :threshold
@@ -117,7 +117,7 @@ class ArchetypeQueryService(
     // Deck count + the scraped card profile (how the archetype is classified).
     fun get(name: String): ArchetypeDetail? {
         val deckCount = (entityManager.createNativeQuery(
-            "SELECT count(*) FROM deck WHERE archetype = :name"
+            "SELECT count(*) FROM metagame.deck WHERE archetype = :name"
         ).setParameter("name", name).singleResult as Number).toLong()
 
         val cards = archetypeCardRepository.findByArchetypeOrderByInclusionDesc(name)

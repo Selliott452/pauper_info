@@ -6,7 +6,7 @@ import jakarta.persistence.*
 import java.io.Serializable
 
 @Entity
-@Table(name = "card_legality")
+@Table(name = "card_legality", schema = "metagame")
 class CardLegality(
     @EmbeddedId
     val id: CardLegalityId,

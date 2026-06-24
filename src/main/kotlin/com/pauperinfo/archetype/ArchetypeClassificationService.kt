@@ -28,9 +28,9 @@ class ArchetypeClassificationService(
     fun rankForDeck(deckId: String, limit: Int): List<ArchetypeScore> {
         val cards = entityManager.createNativeQuery(
             """
-            SELECT c.name FROM deck_card dc
-            JOIN card c ON c.id = dc.card_id
-            JOIN deck d ON d.id = dc.deck_id
+            SELECT c.name FROM metagame.deck_card dc
+            JOIN metagame.card c ON c.id = dc.card_id
+            JOIN metagame.deck d ON d.id = dc.deck_id
             WHERE d.public_id = :id AND dc.board = 0
             """.trimIndent()
         ).setParameter("id", deckId).resultList as List<String>
@@ -52,8 +52,8 @@ class ArchetypeClassificationService(
         val labels = HashMap<Int, Pair<String, String?>>()
         val stream = entityManager.createNativeQuery(
             """
-            SELECT dc.deck_id, c.name FROM deck_card dc
-            JOIN card c ON c.id = dc.card_id
+            SELECT dc.deck_id, c.name FROM metagame.deck_card dc
+            JOIN metagame.card c ON c.id = dc.card_id
             WHERE dc.board = 0
             ORDER BY dc.deck_id
             """.trimIndent()
@@ -88,7 +88,7 @@ class ArchetypeClassificationService(
     private fun persist(labels: Map<Int, Pair<String, String?>>) {
         dataSource.connection.use { conn ->
             conn.autoCommit = false
-            conn.prepareStatement("UPDATE deck SET archetype = ?, archetype_confidence = ? WHERE id = ?").use { ps ->
+            conn.prepareStatement("UPDATE metagame.deck SET archetype = ?, archetype_confidence = ? WHERE id = ?").use { ps ->
                 var i = 0
                 for ((id, label) in labels) {
                     ps.setString(1, label.first)

@@ -10,7 +10,7 @@ import java.io.Serializable
 // One row of a scraped archetype profile: how often a card appears in that
 // archetype's maindecks on mtgdecks (inclusion as a 0..1 fraction).
 @Entity
-@Table(name = "archetype_card")
+@Table(name = "archetype_card", schema = "metagame")
 @IdClass(ArchetypeCardId::class)
 class ArchetypeCard(
 
