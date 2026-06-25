@@ -25,7 +25,7 @@ on:
 #                         Artifact Registry Writer, Cloud Run Admin,
 #                         Service Account User
 #                       (Workload Identity Federation is the preferred,
-#                        keyless alternative — see notes at the bottom.)
+#                        keyless alternative - see notes at the bottom.)
 
 jobs:
   deploy:

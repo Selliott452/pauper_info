@@ -53,7 +53,7 @@ export function RandomDeckPage() {
   return (
     <main className="page">
       <h1>Random deck</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>Pick a random Pauper deck — optionally filtered.</p>
+      <p style={{ color: "#555", marginTop: 0 }}>Pick a random Pauper deck!</p>
 
       <div className="filter-panel">
         <div className="filter-row">

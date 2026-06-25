@@ -178,8 +178,8 @@ function DeckClassification({
           title={`match ${top.toFixed(2)}${runnerUp ? `, +${margin.toFixed(2)} over ${runnerUp}` : ""}`}
         />
         {assigned
-          ? " — its highest-scoring match against each archetype's card profile (inclusion × distinctiveness)."
-          : " — no archetype scored above the match threshold."}
+          ? " - its highest-scoring match against each archetype's card profile (inclusion × distinctiveness)."
+          : " - no archetype scored above the match threshold."}
       </p>
       <table className="data-table" style={{ maxWidth: 520 }}>
         <thead>

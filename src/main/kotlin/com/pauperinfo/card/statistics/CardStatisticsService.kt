@@ -66,14 +66,14 @@ class CardStatisticsService(
             if (colorClauses.isNotEmpty()) {
                 add("(${colorClauses.joinToString(" OR ")})")
             }
-            // Name filter uses a bound parameter — names are arbitrary user input.
+            // Name filter uses a bound parameter - names are arbitrary user input.
             if (!names.isNullOrEmpty()) {
                 add("c.name IN (:names)")
                 params["names"] = names
             }
             // Type filter: a card matches if its type line contains any selected type
-            // (e.g. "Artifact Creature — Construct" matches both Artifact and Creature).
-            // Each value is a bound parameter — arbitrary user input.
+            // (e.g. "Artifact Creature - Construct" matches both Artifact and Creature).
+            // Each value is a bound parameter - arbitrary user input.
             if (!types.isNullOrEmpty()) {
                 val typeClauses = types.mapIndexed { i, type ->
                     params["type$i"] = "%${type.label}%"
@@ -83,7 +83,7 @@ class CardStatisticsService(
             }
             // Minimum play thresholds filter the precomputed counts directly (no
             // aggregation needed). Unplayed cards have no stats row, so coalesce to 0.
-            // Bound integers — safe to inline.
+            // Bound integers - safe to inline.
             if (minMainboardDecks != null) {
                 add("coalesce(s.mainboard_count, 0) >= $minMainboardDecks")
             }
@@ -95,7 +95,7 @@ class CardStatisticsService(
             sql.append(" WHERE ${where.joinToString(" AND ")} ")
         }
 
-        // sortBy.column and direction are enum-derived, limit/offset are integers — all safe to inline.
+        // sortBy.column and direction are enum-derived, limit/offset are integers - all safe to inline.
         sql.append(" ORDER BY ${sortBy.column} ${direction.name} NULLS LAST ")
         sql.append(" LIMIT $limit OFFSET $offset ")
 
@@ -208,7 +208,7 @@ class CardStatisticsService(
             "SELECT COUNT(DISTINCT deck_id) FROM metagame.deck_card WHERE card_id = :targetId AND board = 0"
         ).setParameter("targetId", card.id).singleResult as Number).toLong()
 
-        // limit is an integer — safe to inline. targetId is a bound parameter.
+        // limit is an integer - safe to inline. targetId is a bound parameter.
         // scryfall_id is exposed as the card id (c.id is the internal surrogate).
         val sql = """
             SELECT c.scryfall_id, c.name, c.colors, COUNT(DISTINCT dc.deck_id) AS deck_count

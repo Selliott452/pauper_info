@@ -15,7 +15,7 @@ class Deck(
     @SequenceGenerator(name = "deck_id_seq", schema = "metagame", sequenceName = "deck_id_seq", allocationSize = 1)
     val id: Int = 0,
 
-    // Moxfield public id — the external identifier we fetch by and expose in the API.
+    // Moxfield public id - the external identifier we fetch by and expose in the API.
     @Column(name = "public_id")
     val publicId: String,
 

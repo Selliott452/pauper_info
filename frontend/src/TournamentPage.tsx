@@ -209,8 +209,8 @@ export function TournamentPage() {
 
       <h2 style={{ marginBottom: "0.25rem" }}>Standings</h2>
       <p style={{ color: "#666", fontSize: "0.85rem", marginTop: 0 }}>
-        Ranked by match points, then "strength of schedule" tiebreakers — how well the
-        players each person has faced have done (opp. win %), their own game win %, then
+        Ranked by match points, then "strength of schedule" tiebreakers - how well the
+        players each person has faced have done, their own game win %, then
         their opponents' game win %.
       </p>
       <table className="data-table" style={{ marginBottom: "2rem" }}>
@@ -222,7 +222,7 @@ export function TournamentPage() {
                 { label: "Player", title: "Player" },
                 { label: "Points", title: "Match points: win = 3, draw = 1, loss = 0" },
                 { label: "Record", title: "Match wins–losses–draws" },
-                { label: "Opp. win %", title: "Combined win rate of all the opponents this player has faced across the rounds — rewards a tougher schedule (first tiebreaker)" },
+                { label: "Opp. win %", title: "Combined win rate of all the opponents this player has faced across the rounds - rewards a tougher schedule (first tiebreaker)" },
                 { label: "Game win %", title: "Share of individual games this player has won" },
                 { label: "Opp. game win %", title: "Combined game win rate of all the opponents this player has faced" },
                 { label: "", title: "" },
@@ -356,7 +356,7 @@ function AddPairing({
       </select>
       <span>vs</span>
       <select className="text-input" value={p2} onChange={(e) => setP2(e.target.value)}>
-        <option value="bye">— bye —</option>
+        <option value="bye">- bye -</option>
         {players.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
@@ -403,7 +403,7 @@ function MatchRow({
         }}
       >
         <span>
-          <strong>{match.player1Name}</strong> — bye
+          <strong>{match.player1Name}</strong> - bye
         </span>
         {!locked && <RemoveButton onRemove={onRemove} />}
       </div>
@@ -527,7 +527,7 @@ function DeckModal({
 
   return (
     <Modal width={380} onClose={onClose}>
-        <h3 style={{ marginTop: 0 }}>{playerName} — deck</h3>
+        <h3 style={{ marginTop: 0 }}>{playerName} - deck</h3>
         <label style={label}>
           Archetype
           <input
@@ -587,7 +587,7 @@ function ResultEntry({
   const [p2, setP2] = useState(match.reported ? String(match.player2Wins) : "");
   const [draws, setDraws] = useState(match.reported ? String(match.draws) : "");
 
-  // Auto-save shortly after the user stops typing — but only once all three fields
+  // Auto-save shortly after the user stops typing - but only once all three fields
   // are filled, and only when the result differs from what's stored (so mounting a
   // match never reports a phantom result).
   useEffect(() => {

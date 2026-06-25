@@ -69,7 +69,7 @@ class MoxfieldDeckDetailSyncService(
     // Returns false (and deletes the deck) if it is not pauper-legal. The HTTP fetch
     // and card mapping run here, outside any transaction; only the final persist opens
     // one (via DeckPersistenceService), so no DB connection is held during the slow
-    // Moxfield fetch — critical against a remote DB.
+    // Moxfield fetch - critical against a remote DB.
     fun fetchAndPersist(publicId: String, nameToId: Map<String, Int>): Boolean {
         val detail = moxfieldClient.fetchDeckDetail(publicId)
 

@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional
 
 // Atomically swaps the scraped archetype data in short transactions. The slow
 // mtgdecks HTTP scraping is done by the caller OUTSIDE these methods, so no DB
-// connection (and no idle-in-transaction session) is held during network I/O —
+// connection (and no idle-in-transaction session) is held during network I/O -
 // critical against a remote DB, which would otherwise drop the pinned connection
 // or block on the table lock held across the multi-minute scrape.
 @Service
@@ -32,7 +32,7 @@ class ArchetypePersistenceService(
     }
 
     // These entities use assigned composite keys, so Spring Data's saveAll() would
-    // treat each row as a possible update and fire a SELECT before every INSERT —
+    // treat each row as a possible update and fire a SELECT before every INSERT -
     // thousands of un-batched round trips against a remote DB. We just emptied the
     // table, so the rows are genuinely new: persist() inserts directly with no
     // existence check and batches under hibernate.jdbc.batch_size. flush/clear in

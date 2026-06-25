@@ -3,7 +3,7 @@
 CREATE SCHEMA IF NOT EXISTS metagame;
 
 -- Surrogate-key sequences for the high-volume tables. We use sequences (rather than
--- IDENTITY) so Hibernate can pre-allocate id blocks and batch inserts — essential
+-- IDENTITY) so Hibernate can pre-allocate id blocks and batch inserts - essential
 -- when syncing against a remote database where per-row round trips dominate. The
 -- INCREMENT must match the entities' @SequenceGenerator allocationSize (50).
 CREATE SEQUENCE IF NOT EXISTS metagame.card_id_seq INCREMENT BY 50;
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS metagame.archetype_matchup (
 
 -- The big table: one row per (deck, card, board). Keys are the narrow surrogate
 -- ints and board is a smallint (Board enum ordinal: 0 = mainboard, 1 = sideboard)
--- to keep it as small as possible — it dominates the database size.
+-- to keep it as small as possible - it dominates the database size.
 CREATE TABLE IF NOT EXISTS metagame.deck_card (
     deck_id  INT NOT NULL REFERENCES metagame.deck(id),
     card_id  INT NOT NULL REFERENCES metagame.card(id),

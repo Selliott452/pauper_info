@@ -1,7 +1,7 @@
 package com.pauperinfo.moxfield
 
 // Pauper legality check against the full Moxfield deck response (which carries
-// every card's legalities, type line, and oracle text — including cards we don't
+// every card's legalities, type line, and oracle text - including cards we don't
 // store, so this is accurate where our card table alone would not be).
 object DeckLegality {
 

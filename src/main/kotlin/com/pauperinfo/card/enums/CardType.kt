@@ -1,6 +1,6 @@
 package com.pauperinfo.card.enums
 
-// label is how the type appears in a Scryfall type line (e.g. "Artifact Creature — Construct").
+// label is how the type appears in a Scryfall type line (e.g. "Artifact Creature - Construct").
 enum class CardType(val label: String) {
     CREATURE("Creature"),
     INSTANT("Instant"),

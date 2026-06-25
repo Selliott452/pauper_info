@@ -241,7 +241,7 @@ export function CardPage() {
                     </td>
                     <td className="num">{c.deckCount.toLocaleString()}</td>
                     <td className="num">
-                      {cooccur.deckCount > 0 ? `${((c.deckCount / cooccur.deckCount) * 100).toFixed(1)}%` : "—"}
+                      {cooccur.deckCount > 0 ? `${((c.deckCount / cooccur.deckCount) * 100).toFixed(1)}%` : "-"}
                     </td>
                   </tr>
                 ))}

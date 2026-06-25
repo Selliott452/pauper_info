@@ -2,9 +2,9 @@
 
 Deck and card statistics for the Magic: The Gathering **Pauper** format.
 
-- **Backend** — Spring Boot / Kotlin REST API (`:8080`), Postgres for storage.
-- **Frontend** — React + Vite SPA (`frontend/`, dev server on `:5173`).
-- **Sidecar** — a small Python (FastAPI + `curl_cffi`) HTTP proxy (`:8081`) used
+- **Backend** - Spring Boot / Kotlin REST API (`:8080`), Postgres for storage.
+- **Frontend** - React + Vite SPA (`frontend/`, dev server on `:5173`).
+- **Sidecar** - a small Python (FastAPI + `curl_cffi`) HTTP proxy (`:8081`) used
   only to fetch from Moxfield and mtgdecks (it impersonates a browser to get past
   Cloudflare). All parsing and business logic lives in Kotlin; the sidecar just
   returns raw response bodies.
@@ -13,7 +13,7 @@ Deck and card statistics for the Magic: The Gathering **Pauper** format.
 
 - JDK 21+ and the Gradle wrapper (`./gradlew`)
 - Postgres running locally with a database named `pauper-db` (credentials
-  `postgres` / `postgres` — see `src/main/resources/application.properties`)
+  `postgres` / `postgres` - see `src/main/resources/application.properties`)
 - Python 3.10+ for the sidecar
 - Node 20+ for the frontend
 
@@ -46,7 +46,7 @@ The API connects to local Postgres by default. To point it at an externally
 hosted Postgres instead (both for local runs and for the deployed service),
 activate the `external` Spring profile and supply the connection env vars.
 
-- **Local Postgres (default):** nothing to configure — just `./gradlew bootRun`.
+- **Local Postgres (default):** nothing to configure - just `./gradlew bootRun`.
 - **External DB from your machine:** copy `.env.external.example` to `.env.external`,
   fill in the values, then load it before running. For example:
   ```bash
@@ -58,7 +58,7 @@ activate the `external` Spring profile and supply the connection env vars.
   `EXTERNAL_DB_*` env vars on the service.
 
 If your provider offers a pooled connection, use a **session-mode** endpoint
-(typically port 5432), not a transaction-mode pooler — Hibernate and Flyway rely
+(typically port 5432), not a transaction-mode pooler - Hibernate and Flyway rely
 on prepared statements / session state that transaction poolers don't support.
 See `src/main/resources/application-external.properties`.
 
@@ -70,7 +70,7 @@ it populates your local Postgres.
 
 ## Data sync pipeline
 
-The database is populated by triggering the steps below **in order** — each one
+The database is populated by triggering the steps below **in order** - each one
 depends on the data produced by the previous step. Every endpoint kicks off an
 **asynchronous** background job and returns immediately with `202 Accepted`, so
 watch the application logs to see progress and know when a step has finished
@@ -103,7 +103,7 @@ and "any number" cards, ≥60 mainboard). Decks that fail are deleted. Requires
 the sidecar.
 
 ```bash
-# Only decks not yet fetched (resumable — safe to re-run):
+# Only decks not yet fetched (resumable - safe to re-run):
 curl -X POST http://localhost:8080/api/moxfield/sync-deck-details
 
 # Re-fetch and re-validate EVERY deck (e.g. after changing legality rules):

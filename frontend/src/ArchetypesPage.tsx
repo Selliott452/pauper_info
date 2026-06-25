@@ -150,11 +150,11 @@ export function ArchetypesPage() {
                     </span>
                   </td>
                   <td className="num">{a.deckCount.toLocaleString()}</td>
-                  <td className="num">{totalDecks > 0 ? `${((a.deckCount / totalDecks) * 100).toFixed(1)}%` : "—"}</td>
+                  <td className="num">{totalDecks > 0 ? `${((a.deckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
                   <td className="num" style={{ color: a.overallWinrate != null ? winrateColor(a.overallWinrate) : "#999" }}>
-                    {a.overallWinrate != null ? `${a.overallWinrate}%` : "—"}
+                    {a.overallWinrate != null ? `${a.overallWinrate}%` : "-"}
                   </td>
-                  <td className="num">{a.overallMatches != null ? a.overallMatches.toLocaleString() : "—"}</td>
+                  <td className="num">{a.overallMatches != null ? a.overallMatches.toLocaleString() : "-"}</td>
                 </tr>
               ))}
             </tbody>

@@ -402,7 +402,7 @@ class SwissService(
     // Editing (pairing, results, drops) is locked once a tournament is complete.
     private fun requireActive(eventId: Int) {
         if (event(eventId).status == "COMPLETE") {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Tournament is complete — reopen it to make changes")
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Tournament is complete - reopen it to make changes")
         }
     }
 }

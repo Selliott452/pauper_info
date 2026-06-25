@@ -93,7 +93,7 @@ export function TournamentsPage() {
 
       {isLoading && <Loading />}
 
-      {data && data.length === 0 && <p style={{ color: "#666" }}>No tournaments yet — create one above.</p>}
+      {data && data.length === 0 && <p style={{ color: "#666" }}>No tournaments yet!</p>}
 
       {data && data.length > 0 && (
         <table className="data-table">
@@ -112,7 +112,7 @@ export function TournamentsPage() {
                 <td>
                   <Link to={`/tournaments/${t.id}`}>{t.name}</Link>
                 </td>
-                <td style={{ color: "#666" }}>{t.date ?? "—"}</td>
+                <td style={{ color: "#666" }}>{t.date ?? "-"}</td>
                 <td className="num">{t.playerCount}</td>
                 <td className="num">{t.currentRound}</td>
                 <td className="num">{t.status}</td>

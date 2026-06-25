@@ -80,7 +80,7 @@ export function CompetitorsPage() {
 
       {isLoading && <Loading />}
       {data && data.length === 0 && (
-        <p style={{ color: "#666" }}>No players yet — add one above, or create a tournament.</p>
+        <p style={{ color: "#666" }}>No players yet!</p>
       )}
 
       {data && data.length > 0 && (

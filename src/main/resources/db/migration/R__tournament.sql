@@ -1,5 +1,5 @@
 -- Swiss tournament manager. Deliberately isolated in its own schema with no
--- references to the public (cards/decks/archetypes) tables — the two features
+-- references to the public (cards/decks/archetypes) tables - the two features
 -- share nothing in the database.
 CREATE SCHEMA IF NOT EXISTS tournament;
 

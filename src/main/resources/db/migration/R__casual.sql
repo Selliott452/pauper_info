@@ -1,4 +1,4 @@
--- Casual 1-on-1 match tracking. Fully isolated in its own schema — a separate
+-- Casual 1-on-1 match tracking. Fully isolated in its own schema - a separate
 -- player list and match log, unrelated to the tournament or metagame tables.
 CREATE SCHEMA IF NOT EXISTS casual;
 

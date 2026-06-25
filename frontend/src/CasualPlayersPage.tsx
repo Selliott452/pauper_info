@@ -45,7 +45,7 @@ export function CasualPlayersPage() {
       </div>
 
       {isLoading && <Loading />}
-      {data && data.length === 0 && <p style={{ color: "#666" }}>No players yet — add one above, or record a match.</p>}
+      {data && data.length === 0 && <p style={{ color: "#666" }}>No players yet!</p>}
 
       {data && data.length > 0 && (
         <table className="data-table" style={{ maxWidth: 560 }}>
@@ -67,7 +67,7 @@ export function CasualPlayersPage() {
                 <td className="center">
                   {p.wins}-{p.losses}-{p.draws}
                 </td>
-                <td className="num">{p.matches > 0 ? pct(p.matchWinPct) : "—"}</td>
+                <td className="num">{p.matches > 0 ? pct(p.matchWinPct) : "-"}</td>
               </tr>
             ))}
           </tbody>

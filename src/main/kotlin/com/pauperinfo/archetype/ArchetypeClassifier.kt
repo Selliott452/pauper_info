@@ -10,7 +10,7 @@ import kotlin.math.sqrt
  * archetype's staples matter most, IDF down-weights cards shared across many
  * archetypes (Lightning Bolt) so distinctive cards drive the match. A deck's
  * score for an archetype is the cosine similarity of its (binary) card set to
- * that weighted vector — presence of a signature card adds evidence; a missing
+ * that weighted vector - presence of a signature card adds evidence; a missing
  * one is simply neutral, never disqualifying.
  */
 class ArchetypeClassifier(rows: List<ArchetypeCard>, private val threshold: Double) {
@@ -66,7 +66,7 @@ class ArchetypeClassifier(rows: List<ArchetypeCard>, private val threshold: Doub
         val top = ranked.firstOrNull()?.second ?: return null
         if (top < threshold) return null
         val margin = top - (ranked.getOrNull(1)?.second ?: 0.0)
-        // Both the absolute match and the lead over the runner-up matter — a close
+        // Both the absolute match and the lead over the runner-up matter - a close
         // runner-up means genuine ambiguity, so it lowers confidence at every tier.
         return when {
             top >= 0.45 && margin >= 0.12 -> "High"

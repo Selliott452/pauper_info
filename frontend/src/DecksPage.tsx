@@ -200,10 +200,10 @@ export function DecksPage() {
                       <ConfidenceBadge level={deck.archetypeConfidence} />
                     </>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </td>
-                <td>{deck.author ?? "—"}</td>
+                <td>{deck.author ?? "-"}</td>
                 <td>
                   <ColorSymbols colors={deck.colors} />
                 </td>

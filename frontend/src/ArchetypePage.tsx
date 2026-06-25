@@ -127,7 +127,7 @@ export function ArchetypePage() {
           <p style={{ color: "#555", marginTop: 0 }}>
             A deck is scored against this archetype's card profile (inclusion rate ×
             distinctiveness). The cards below are how often each appears in the
-            archetype's decks — the high-inclusion ones are its signature.
+            archetype's decks, the high-inclusion ones are its signature.
           </p>
 
           <table className="data-table" style={{ maxWidth: 520 }}>

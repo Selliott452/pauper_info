@@ -16,7 +16,7 @@ class DeckPersistenceService(private val deckRepository: DeckRepository) {
 
     // Persist fetched deck details in a single short transaction. The caller does the
     // slow Moxfield HTTP fetch and card mapping OUTSIDE this method, so no DB
-    // connection is held during network I/O — important against a remote DB, where
+    // connection is held during network I/O - important against a remote DB, where
     // pinning a connection (and an idle-in-transaction session) across the fetch
     // would exhaust the pool and risk the provider killing the session.
     //

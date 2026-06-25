@@ -16,7 +16,7 @@ class Card(
     @SequenceGenerator(name = "card_id_seq", schema = "metagame", sequenceName = "card_id_seq", allocationSize = 50)
     val id: Int = 0,
 
-    // Scryfall id — the external identifier we expose in the API.
+    // Scryfall id - the external identifier we expose in the API.
     @Column(name = "scryfall_id")
     val scryfallId: UUID,
 

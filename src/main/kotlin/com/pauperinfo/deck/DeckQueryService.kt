@@ -110,7 +110,7 @@ class DeckQueryService(
                 add("d.archetype_confidence IN (:confidences)")
                 params["confidences"] = confidences
             }
-            // Updated within the last N days. N is a bound integer — safe to inline.
+            // Updated within the last N days. N is a bound integer - safe to inline.
             if (updatedWithinDays != null && updatedWithinDays > 0) {
                 add("d.updated_at >= now() - INTERVAL '$updatedWithinDays days'")
             }

@@ -174,7 +174,7 @@ export function StatisticsPage() {
                 </td>
                 <td>{card.mainboardDeckCount.toLocaleString()}</td>
                 <td>{card.sideboardDeckCount.toLocaleString()}</td>
-                <td>{totalDecks ? `${((card.mainboardDeckCount / totalDecks) * 100).toFixed(1)}%` : "—"}</td>
+                <td>{totalDecks ? `${((card.mainboardDeckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
               </tr>
             ))}
           </tbody>
