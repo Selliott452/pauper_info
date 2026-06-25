@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.common.util.concurrent.RateLimiter
 import org.slf4j.LoggerFactory
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.net.URI
 import java.net.URLEncoder
+import java.net.http.HttpClient
 
 @Component
 class MoxfieldClient {
@@ -19,7 +21,15 @@ class MoxfieldClient {
 
     private val rateLimiter = RateLimiter.create(REQUESTS_PER_SECOND)
 
+    // Pin to HTTP/1.1: the JDK HttpClient otherwise attempts an h2c upgrade against the
+    // plaintext sidecar, which uvicorn rejects ("Unsupported upgrade request") while
+    // silently dropping the request body, causing FastAPI to return 422.
     private val proxyClient = RestClient.builder()
+        .requestFactory(
+            JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
+            )
+        )
         .baseUrl("http://localhost:8081")
         .build()
 
@@ -84,7 +94,7 @@ class MoxfieldClient {
 
     companion object {
         const val POOL_SIZE = 50
-        const val REQUESTS_PER_SECOND = 20.0
+        const val REQUESTS_PER_SECOND = 15.0
         private const val MAX_ATTEMPTS = 3
     }
 

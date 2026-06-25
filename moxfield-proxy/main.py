@@ -9,7 +9,7 @@ HEADERS = {
     "accept-language": "en-US,en;q=0.9",
     "origin": "https://moxfield.com",
     "referer": "https://moxfield.com/",
-    "x-moxfield-version": "2026.06.19.1",
+    "x-moxfield-version": "2026.06.24.8",
 }
 
 class FetchRequest(BaseModel):

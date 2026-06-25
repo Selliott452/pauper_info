@@ -46,3 +46,10 @@ __pycache__/
 *.pyc
 app.log
 bootrun.log
+*.log
+orchestrate_sync.sh
+
+### Local secrets ###
+.env
+.env.*
+!.env.external.example

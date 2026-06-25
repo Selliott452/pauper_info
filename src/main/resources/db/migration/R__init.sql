@@ -2,21 +2,21 @@
 -- schema, consistent with the tournament and casual schemas.
 CREATE SCHEMA IF NOT EXISTS metagame;
 
--- Move any pre-existing public tables into the metagame schema (their indexes and
--- constraints move with them). No-ops once already relocated / on a fresh install.
-ALTER TABLE IF EXISTS public.card SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.card_legality SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.deck SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.archetype_card SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.archetype_matchup SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.deck_card SET SCHEMA metagame;
-ALTER TABLE IF EXISTS public.card_play_stats SET SCHEMA metagame;
+-- Surrogate-key sequences for the high-volume tables. We use sequences (rather than
+-- IDENTITY) so Hibernate can pre-allocate id blocks and batch inserts — essential
+-- when syncing against a remote database where per-row round trips dominate. The
+-- INCREMENT must match the entities' @SequenceGenerator allocationSize (50).
+CREATE SEQUENCE IF NOT EXISTS metagame.card_id_seq INCREMENT BY 50;
+-- Decks are inserted one row at a time via a native upsert (not Hibernate's batched
+-- ORM path), so they don't benefit from block pre-allocation; increment by 1 to keep
+-- their ids contiguous.
+CREATE SEQUENCE IF NOT EXISTS metagame.deck_id_seq INCREMENT BY 1;
 
 -- Cards. id is an internal surrogate key; scryfall_id is the external identifier
 -- (what the API exposes). Decks reference cards by the surrogate to keep the large
 -- deck_card table narrow.
 CREATE TABLE IF NOT EXISTS metagame.card (
-    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id          INT PRIMARY KEY DEFAULT nextval('metagame.card_id_seq'),
     scryfall_id UUID NOT NULL UNIQUE,
     name        TEXT NOT NULL,
     mana_cost   TEXT,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS metagame.card_legality (
 -- Decks. id is an internal surrogate key; public_id is the Moxfield public id
 -- (what the API exposes and what we fetch by).
 CREATE TABLE IF NOT EXISTS metagame.deck (
-    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id          INT PRIMARY KEY DEFAULT nextval('metagame.deck_id_seq'),
     public_id   TEXT NOT NULL UNIQUE,
     name        TEXT,
     author      TEXT,

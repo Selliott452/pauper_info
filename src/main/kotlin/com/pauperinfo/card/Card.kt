@@ -12,7 +12,8 @@ class Card(
     // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
     // card. The API identifies cards by scryfallId, not this.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "card_id_seq")
+    @SequenceGenerator(name = "card_id_seq", schema = "metagame", sequenceName = "card_id_seq", allocationSize = 50)
     val id: Int = 0,
 
     // Scryfall id — the external identifier we expose in the API.

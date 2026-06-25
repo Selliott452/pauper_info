@@ -11,7 +11,8 @@ class Deck(
     // Internal surrogate key (assigned by the database). 0 for a not-yet-persisted
     // deck. The API identifies decks by publicId, not this.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "deck_id_seq")
+    @SequenceGenerator(name = "deck_id_seq", schema = "metagame", sequenceName = "deck_id_seq", allocationSize = 1)
     val id: Int = 0,
 
     // Moxfield public id — the external identifier we fetch by and expose in the API.

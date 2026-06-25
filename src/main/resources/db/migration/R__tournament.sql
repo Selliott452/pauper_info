@@ -22,9 +22,6 @@ CREATE TABLE IF NOT EXISTS tournament.event (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE tournament.event ADD COLUMN IF NOT EXISTS event_date DATE;
-ALTER TABLE tournament.event DROP COLUMN IF EXISTS rounds;
-
 -- One competitor's participation in one tournament. name is a snapshot of the
 -- competitor's name at the time (so display doesn't depend on a join).
 -- archetype / deck_url record what this player ran in this event (free-text
@@ -38,11 +35,6 @@ CREATE TABLE IF NOT EXISTS tournament.player (
     deck_url      TEXT,
     dropped       BOOLEAN NOT NULL DEFAULT false
 );
-
--- Bring a pre-existing player table up to the current shape.
-ALTER TABLE tournament.player ADD COLUMN IF NOT EXISTS competitor_id INT REFERENCES tournament.competitor(id);
-ALTER TABLE tournament.player ADD COLUMN IF NOT EXISTS archetype TEXT;
-ALTER TABLE tournament.player ADD COLUMN IF NOT EXISTS deck_url TEXT;
 
 CREATE TABLE IF NOT EXISTS tournament.round (
     id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

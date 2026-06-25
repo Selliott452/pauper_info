@@ -40,6 +40,34 @@ Start these in order. All REST endpoints are served under the `/api` prefix.
    npm run dev             # serves on :5173, proxies /api to :8080
    ```
 
+## Database: local vs. external
+
+The API connects to local Postgres by default. To point it at an externally
+hosted Postgres instead (both for local runs and for the deployed service),
+activate the `external` Spring profile and supply the connection env vars.
+
+- **Local Postgres (default):** nothing to configure — just `./gradlew bootRun`.
+- **External DB from your machine:** copy `.env.external.example` to `.env.external`,
+  fill in the values, then load it before running. For example:
+  ```bash
+  set -a; source .env.external; set +a
+  ./gradlew bootRun
+  ```
+  (On PowerShell, set the same vars with `$env:NAME = "value"` before `./gradlew bootRun`.)
+- **Deployed (Cloud Run):** set `SPRING_PROFILES_ACTIVE=external` plus the
+  `EXTERNAL_DB_*` env vars on the service.
+
+If your provider offers a pooled connection, use a **session-mode** endpoint
+(typically port 5432), not a transaction-mode pooler — Hibernate and Flyway rely
+on prepared statements / session state that transaction poolers don't support.
+See `src/main/resources/application-external.properties`.
+
+You can also override the local datasource directly with `SPRING_DATASOURCE_URL`,
+`SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` without using a profile.
+
+The sync pipeline below runs against whichever database is active, so by default
+it populates your local Postgres.
+
 ## Data sync pipeline
 
 The database is populated by triggering the steps below **in order** — each one

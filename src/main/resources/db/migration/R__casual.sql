@@ -25,8 +25,5 @@ CREATE TABLE IF NOT EXISTS casual.match (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE casual.match ADD COLUMN IF NOT EXISTS player1_deck_url TEXT;
-ALTER TABLE casual.match ADD COLUMN IF NOT EXISTS player2_deck_url TEXT;
-
 CREATE INDEX IF NOT EXISTS idx_casual_match_p1 ON casual.match (player1_id);
 CREATE INDEX IF NOT EXISTS idx_casual_match_p2 ON casual.match (player2_id);
