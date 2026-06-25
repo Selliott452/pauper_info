@@ -10,6 +10,9 @@ data class CompetitorSummary(
     val wins: Int,
     val losses: Int,
     val draws: Int,
+    val gameWins: Int,
+    val gameLosses: Int,
+    val gameDraws: Int,
     val matchWinPct: Double,
     val gameWinPct: Double,
 )
@@ -25,17 +28,30 @@ data class CompetitorEventResult(
     val draws: Int,
 )
 
-// A match-record breakdown (wins/losses/draws) bucketed by some key.
-data class ArchetypeRecord(val archetype: String?, val wins: Int, val losses: Int, val draws: Int)
-data class OpponentRecord(val opponentId: Int?, val opponentName: String, val wins: Int, val losses: Int, val draws: Int)
+// A match-record breakdown (wins/losses/draws) plus the underlying game record,
+// bucketed by some key.
+data class ArchetypeRecord(
+    val archetype: String?,
+    val wins: Int, val losses: Int, val draws: Int,
+    val gameWins: Int, val gameLosses: Int, val gameDraws: Int,
+)
+data class OpponentRecord(
+    val opponentId: Int?, val opponentName: String,
+    val wins: Int, val losses: Int, val draws: Int,
+    val gameWins: Int, val gameLosses: Int, val gameDraws: Int,
+)
 
 data class CompetitorDetail(
     val id: Int,
     val name: String,
     val events: Int,
+    // Match record (W-L-D) and the underlying game record across all matches.
     val wins: Int,
     val losses: Int,
     val draws: Int,
+    val gameWins: Int,
+    val gameLosses: Int,
+    val gameDraws: Int,
     val matchWinPct: Double,
     val gameWinPct: Double,
     val results: List<CompetitorEventResult>,

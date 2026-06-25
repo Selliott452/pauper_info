@@ -34,6 +34,9 @@ class CompetitorService(
             wins = career.wins,
             losses = career.losses,
             draws = career.draws,
+            gameWins = career.gamesWon,
+            gameLosses = career.gamesLost,
+            gameDraws = career.gamesDrawn,
             matchWinPct = career.matchWinPct(),
             gameWinPct = career.gameWinPct(),
         )
@@ -70,6 +73,9 @@ class CompetitorService(
             wins = career.wins,
             losses = career.losses,
             draws = career.draws,
+            gameWins = career.gamesWon,
+            gameLosses = career.gamesLost,
+            gameDraws = career.gamesDrawn,
             matchWinPct = career.matchWinPct(),
             gameWinPct = career.gameWinPct(),
             results = results,
@@ -85,12 +91,19 @@ class CompetitorService(
         var wins = 0
         var losses = 0
         var draws = 0
-        fun add(o: Outcome) {
+        var gameWins = 0
+        var gameLosses = 0
+        var gameDraws = 0
+        // Adds a match outcome plus its underlying game record (gw-gl-gd).
+        fun add(o: Outcome, gw: Int, gl: Int, gd: Int) {
             when (o) {
                 Outcome.WIN -> wins++
                 Outcome.LOSS -> losses++
                 Outcome.DRAW -> draws++
             }
+            gameWins += gw
+            gameLosses += gl
+            gameDraws += gd
         }
         fun total() = wins + losses + draws
     }
@@ -102,15 +115,15 @@ class CompetitorService(
         val byOpponent = LinkedHashMap<String, Triple<Int?, String, Tally>>()
 
         fun archetypesPlayed() = byMyArchetype.entries
-            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws) }
+            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws, t.gameWins, t.gameLosses, t.gameDraws) }
             .sortedByDescending { it.wins + it.losses + it.draws }
 
         fun vsArchetypes() = byOpponentArchetype.entries
-            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws) }
+            .map { (a, t) -> ArchetypeRecord(a, t.wins, t.losses, t.draws, t.gameWins, t.gameLosses, t.gameDraws) }
             .sortedByDescending { it.wins + it.losses + it.draws }
 
         fun vsPlayers() = byOpponent.values
-            .map { (id, name, t) -> OpponentRecord(id, name, t.wins, t.losses, t.draws) }
+            .map { (id, name, t) -> OpponentRecord(id, name, t.wins, t.losses, t.draws, t.gameWins, t.gameLosses, t.gameDraws) }
             .sortedByDescending { it.wins + it.losses + it.draws }
     }
 
@@ -131,15 +144,18 @@ class CompetitorService(
         for (m in matches) {
             val isPlayer1 = m.player1Id in myPlayerIds
             val myPlayerId = if (isPlayer1) m.player1Id else m.player2Id!!
-            val outcome = when {
-                m.player2Id == null -> Outcome.WIN // bye
-                else -> {
-                    val mine = if (isPlayer1) m.player1Wins else m.player2Wins
-                    val theirs = if (isPlayer1) m.player2Wins else m.player1Wins
-                    if (mine > theirs) Outcome.WIN else if (mine < theirs) Outcome.LOSS else Outcome.DRAW
-                }
+            // My game counts for this match (a bye counts as a 2-0 game win).
+            val myGames = if (isPlayer1) m.player1Wins else m.player2Wins
+            val theirGames = if (isPlayer1) m.player2Wins else m.player1Wins
+            val gw: Int; val gl: Int; val gd: Int
+            val outcome: Outcome
+            if (m.player2Id == null) {
+                outcome = Outcome.WIN; gw = 2; gl = 0; gd = 0
+            } else {
+                gw = myGames; gl = theirGames; gd = m.draws
+                outcome = if (myGames > theirGames) Outcome.WIN else if (myGames < theirGames) Outcome.LOSS else Outcome.DRAW
             }
-            b.byMyArchetype.getOrPut(archetypeByPlayerId[myPlayerId]) { Tally() }.add(outcome)
+            b.byMyArchetype.getOrPut(archetypeByPlayerId[myPlayerId]) { Tally() }.add(outcome, gw, gl, gd)
 
             if (m.player2Id != null) {
                 val opponentId = if (isPlayer1) m.player2Id!! else m.player1Id
@@ -147,8 +163,8 @@ class CompetitorService(
                 val key = opponent?.competitorId?.let { "c$it" } ?: "p$opponentId"
                 b.byOpponent.getOrPut(key) {
                     Triple(opponent?.competitorId, opponent?.name ?: "?", Tally())
-                }.third.add(outcome)
-                b.byOpponentArchetype.getOrPut(opponent?.archetype) { Tally() }.add(outcome)
+                }.third.add(outcome, gw, gl, gd)
+                b.byOpponentArchetype.getOrPut(opponent?.archetype) { Tally() }.add(outcome, gw, gl, gd)
             }
         }
         return b
@@ -161,10 +177,12 @@ class CompetitorService(
         var losses = 0
         var draws = 0
         var gamesWon = 0
-        var gamesPlayed = 0
+        var gamesLost = 0
+        var gamesDrawn = 0
         fun matchesPlayed() = wins + losses + draws
+        fun gamesPlayed() = gamesWon + gamesLost + gamesDrawn
         fun matchWinPct() = if (matchesPlayed() == 0) 0.0 else round3(wins.toDouble() / matchesPlayed())
-        fun gameWinPct() = if (gamesPlayed == 0) 0.0 else round3(gamesWon.toDouble() / gamesPlayed)
+        fun gameWinPct() = if (gamesPlayed() == 0) 0.0 else round3(gamesWon.toDouble() / gamesPlayed())
     }
 
     private fun career(players: List<Player>): Career {
@@ -176,13 +194,14 @@ class CompetitorService(
             val isPlayer1 = m.player1Id in playerIds
             if (m.player2Id == null) {
                 // Bye (competitor is always player1 on a bye): a 2-0 win.
-                career.wins++; career.gamesWon += 2; career.gamesPlayed += 2
+                career.wins++; career.gamesWon += 2
                 continue
             }
             val myWins = if (isPlayer1) m.player1Wins else m.player2Wins
             val oppWins = if (isPlayer1) m.player2Wins else m.player1Wins
             career.gamesWon += myWins
-            career.gamesPlayed += myWins + oppWins + m.draws
+            career.gamesLost += oppWins
+            career.gamesDrawn += m.draws
             when {
                 myWins > oppWins -> career.wins++
                 myWins < oppWins -> career.losses++

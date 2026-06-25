@@ -19,8 +19,8 @@ export function CompetitorPage() {
         <>
           <h1 style={{ marginBottom: "0.25rem" }}>{data.name}</h1>
           <p style={{ color: "#555", margin: "0 0 1.5rem" }}>
-            {data.events} event{data.events === 1 ? "" : "s"} · {data.wins}-{data.losses}-{data.draws} ·{" "}
-            {pct(data.matchWinPct)} match win · {pct(data.gameWinPct)} game win
+            {data.events} event{data.events === 1 ? "" : "s"} · Matches {data.wins}-{data.losses}-{data.draws} (
+            {pct(data.matchWinPct)}) · Games {data.gameWins}-{data.gameLosses}-{data.gameDraws} ({pct(data.gameWinPct)})
           </p>
 
           <h2 style={{ marginBottom: "0.5rem" }}>Tournament history</h2>
@@ -56,36 +56,48 @@ export function CompetitorPage() {
           <RecordTable
             heading="Archetypes played"
             firstCol="Archetype"
+            showGames
             rows={data.archetypesPlayed.map((a) => ({
               key: archetypeLabel(a),
               label: archetypeLabel(a),
               wins: a.wins,
               losses: a.losses,
               draws: a.draws,
+              gameWins: a.gameWins,
+              gameLosses: a.gameLosses,
+              gameDraws: a.gameDraws,
             }))}
           />
 
           <RecordTable
             heading="Record vs player"
             firstCol="Opponent"
+            showGames
             rows={data.vsPlayers.map((o: OpponentRecord) => ({
               key: o.opponentId != null ? `c${o.opponentId}` : o.opponentName,
               label: o.opponentId != null ? <Link to={`/players/${o.opponentId}`}>{o.opponentName}</Link> : o.opponentName,
               wins: o.wins,
               losses: o.losses,
               draws: o.draws,
+              gameWins: o.gameWins,
+              gameLosses: o.gameLosses,
+              gameDraws: o.gameDraws,
             }))}
           />
 
           <RecordTable
             heading="Record vs archetype"
             firstCol="Opponent archetype"
+            showGames
             rows={data.vsArchetypes.map((a) => ({
               key: archetypeLabel(a),
               label: archetypeLabel(a),
               wins: a.wins,
               losses: a.losses,
               draws: a.draws,
+              gameWins: a.gameWins,
+              gameLosses: a.gameLosses,
+              gameDraws: a.gameDraws,
             }))}
           />
         </>

@@ -472,6 +472,9 @@ export interface CompetitorSummary {
   wins: number;
   losses: number;
   draws: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDraws: number;
   matchWinPct: number;
   gameWinPct: number;
 }
@@ -491,6 +494,9 @@ export interface ArchetypeRecord {
   wins: number;
   losses: number;
   draws: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDraws: number;
 }
 
 export interface OpponentRecord {
@@ -499,6 +505,9 @@ export interface OpponentRecord {
   wins: number;
   losses: number;
   draws: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDraws: number;
 }
 
 export interface CompetitorDetail {
@@ -508,6 +517,9 @@ export interface CompetitorDetail {
   wins: number;
   losses: number;
   draws: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDraws: number;
   matchWinPct: number;
   gameWinPct: number;
   results: CompetitorEventResult[];

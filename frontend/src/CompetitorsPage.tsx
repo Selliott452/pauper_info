@@ -6,7 +6,7 @@ import { Loading } from "./QueryState";
 import { pct } from "./format";
 import { createCompetitor, fetchCompetitors, type CompetitorSummary } from "./api";
 
-type SortKey = "name" | "events" | "record" | "match" | "game";
+type SortKey = "name" | "events" | "record" | "gameRecord" | "match" | "game";
 type SortDir = "asc" | "desc";
 
 function compareCompetitors(a: CompetitorSummary, b: CompetitorSummary, col: SortKey, dir: SortDir): number {
@@ -18,6 +18,8 @@ function compareCompetitors(a: CompetitorSummary, b: CompetitorSummary, col: Sor
       return (a.events - b.events) * sign;
     case "record":
       return (a.wins - b.wins) * sign;
+    case "gameRecord":
+      return (a.gameWins - b.gameWins) * sign;
     case "match":
       return (a.matchWinPct - b.matchWinPct) * sign;
     case "game":
@@ -89,7 +91,8 @@ export function CompetitorsPage() {
             <tr>
               {th("Player", "name", "left")}
               {th("Events", "events", "right")}
-              {th("Record", "record", "center")}
+              {th("Match record", "record", "center")}
+              {th("Game record", "gameRecord", "center")}
               {th("Match win%", "match", "right")}
               {th("Game win%", "game", "right")}
             </tr>
@@ -103,6 +106,9 @@ export function CompetitorsPage() {
                 <td className="num">{c.events}</td>
                 <td className="center">
                   {c.wins}-{c.losses}-{c.draws}
+                </td>
+                <td className="center">
+                  {c.gameWins}-{c.gameLosses}-{c.gameDraws}
                 </td>
                 <td className="num">{pct(c.matchWinPct)}</td>
                 <td className="num">{pct(c.gameWinPct)}</td>
