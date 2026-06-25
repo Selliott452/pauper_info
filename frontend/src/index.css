@@ -135,27 +135,82 @@ a:hover {
   min-width: 0;
 }
 
-/* Collapse the sidebar into a top bar on narrow viewports. */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Hamburger toggle — only shown on narrow viewports (see media query). */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+  padding: 0.25rem;
+  align-items: center;
+}
+
+/* On narrow viewports the sidebar becomes a sticky top bar; the nav links
+   collapse behind a hamburger toggle and drop down vertically when opened. */
 @media (max-width: 720px) {
   .app-shell {
     flex-direction: column;
   }
   .sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     height: auto;
     width: 100%;
     flex: none;
-    flex-direction: row;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0;
     border-right: none;
-    border-bottom: 1px solid #eee;
-    padding: 0.6rem 1rem;
-    overflow-x: auto;
+    border-bottom: 1px solid var(--line-strong);
+    padding: 0.55rem 0.95rem;
   }
   .sidebar-brand {
     padding: 0;
-    margin-right: 0.5rem;
+    font-size: 1.2rem;
+  }
+  .nav-toggle {
+    display: flex;
+  }
+  /* Hidden until the hamburger is tapped. */
+  .nav-links {
+    display: none;
+    padding-top: 0.5rem;
+  }
+  .nav-links.open {
+    display: flex;
+  }
+  .nav-group-label {
+    padding-top: 0.6rem;
+  }
+
+  /* Tighten page chrome so content gets the full narrow width. */
+  .page {
+    padding: 1rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  /* Let wide data tables scroll horizontally instead of overflowing the page
+     (and forcing the whole viewport to scroll sideways). */
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
   }
 }
 
