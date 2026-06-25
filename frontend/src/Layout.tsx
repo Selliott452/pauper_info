@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { IconAffiliate, IconArrowsShuffle, IconCards, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
+import { IconAffiliate, IconArrowsShuffle, IconCards, IconChartPie, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
 
 function navClass(active: boolean): string {
   return active ? "nav-item active" : "nav-item";
@@ -17,7 +17,8 @@ export function Layout() {
   const onDecks = pathname.startsWith("/decks");
   const onRandom = pathname === "/";
   const onMatchups = pathname.startsWith("/matchups");
-  const onTournaments = pathname.startsWith("/tournaments");
+  const onMetagame = pathname === "/tournaments/metagame";
+  const onTournaments = pathname.startsWith("/tournaments") && !onMetagame;
   const onPlayers = pathname.startsWith("/players");
   const onCasualPlayers = pathname.startsWith("/matches/players");
   const onMatches = pathname === "/matches";
@@ -54,6 +55,10 @@ export function Layout() {
           <Link to="/tournaments" className={navClass(onTournaments)}>
             <IconTrophy size={18} stroke={2} />
             Tournaments
+          </Link>
+          <Link to="/tournaments/metagame" className={navClass(onMetagame)}>
+            <IconChartPie size={18} stroke={2} />
+            Metagame
           </Link>
           <Link to="/players" className={navClass(onPlayers)}>
             <IconUsers size={18} stroke={2} />

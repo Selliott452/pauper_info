@@ -19,10 +19,86 @@ data class MatchupResult(
     val winRate: Double?,
 )
 
+// One archetype's slice of the recorded-tournament metagame: how many players
+// brought it (and what share of the field that is) plus its aggregate match
+// record across all reported tournament matches.
+data class ArchetypeMetagameRow(
+    val archetype: String,
+    val players: Int,
+    val share: Double,
+    val wins: Int,
+    val losses: Int,
+    val draws: Int,
+    val winRate: Double?,
+)
+
 // Computes archetype-vs-archetype win rates. Read-only across the three schemas;
 // owns no data of its own.
 @Service
 class MatchupService(@PersistenceContext private val entityManager: EntityManager) {
+
+    // The archetype breakdown of every recorded tournament: representation by
+    // player count plus a W-L-D match record per archetype. Match outcomes are
+    // decided by games won (best-of-three); byes are excluded.
+    @Suppress("UNCHECKED_CAST")
+    fun tournamentMetagame(): List<ArchetypeMetagameRow> {
+        val playerRows = entityManager.createNativeQuery(
+            """
+            SELECT lower(btrim(archetype)) AS key, min(btrim(archetype)) AS label, count(*) AS n
+            FROM tournament.player
+            WHERE archetype IS NOT NULL AND btrim(archetype) <> ''
+            GROUP BY lower(btrim(archetype))
+            """.trimIndent()
+        ).resultList as List<Array<Any?>>
+
+        val totalPlayers = playerRows.sumOf { (it[2] as Number).toInt() }
+
+        val matchRows = entityManager.createNativeQuery(
+            """
+            SELECT p1.archetype, p2.archetype, m.player1_wins, m.player2_wins
+            FROM tournament.match m
+            JOIN tournament.player p1 ON p1.id = m.player1_id
+            JOIN tournament.player p2 ON p2.id = m.player2_id
+            WHERE m.reported = true AND m.player2_id IS NOT NULL
+              AND p1.archetype IS NOT NULL AND btrim(p1.archetype) <> ''
+              AND p2.archetype IS NOT NULL AND btrim(p2.archetype) <> ''
+            """.trimIndent()
+        ).resultList as List<Array<Any?>>
+
+        // key -> [wins, losses, draws]
+        val record = HashMap<String, IntArray>()
+        fun bucket(key: String) = record.getOrPut(key) { IntArray(3) }
+        for (r in matchRows) {
+            val k1 = (r[0] as String).trim().lowercase()
+            val k2 = (r[1] as String).trim().lowercase()
+            val p1Wins = (r[2] as Number).toInt()
+            val p2Wins = (r[3] as Number).toInt()
+            when {
+                p1Wins > p2Wins -> { bucket(k1)[0]++; bucket(k2)[1]++ }
+                p1Wins < p2Wins -> { bucket(k1)[1]++; bucket(k2)[0]++ }
+                else -> { bucket(k1)[2]++; bucket(k2)[2]++ }
+            }
+        }
+
+        return playerRows.map { row ->
+            val key = row[0] as String
+            val label = row[1] as String
+            val players = (row[2] as Number).toInt()
+            val b = record[key] ?: IntArray(3)
+            val games = b[0] + b[1] + b[2]
+            ArchetypeMetagameRow(
+                archetype = label,
+                players = players,
+                share = if (totalPlayers == 0) 0.0 else round3(players.toDouble() / totalPlayers),
+                wins = b[0],
+                losses = b[1],
+                draws = b[2],
+                winRate = if (games == 0) null else round3(b[0].toDouble() / games),
+            )
+        }.sortedWith(compareByDescending<ArchetypeMetagameRow> { it.players }.thenBy { it.archetype.lowercase() })
+    }
+
+    private fun round3(v: Double): Double = Math.round(v * 1000) / 1000.0
 
     fun matchup(archetype: String, opponent: String, source: String): MatchupResult = when (source) {
         "global" -> global(archetype, opponent)

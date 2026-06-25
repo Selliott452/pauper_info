@@ -15,4 +15,8 @@ class MatchupController(private val matchupService: MatchupService) {
         @RequestParam opponent: String,
         @RequestParam(defaultValue = "global") source: String,
     ): MatchupResult = matchupService.matchup(archetype, opponent, source)
+
+    // Archetype breakdown of recorded tournaments (representation + match record).
+    @GetMapping("/tournament-metagame")
+    fun tournamentMetagame(): List<ArchetypeMetagameRow> = matchupService.tournamentMetagame()
 }

@@ -233,6 +233,47 @@ th:hover {
   color: var(--muted);
 }
 
+/* Tournament metagame: Recharts donut card. */
+.metagame-chart {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Recharts renders the legend labels through our formatter span. */
+.metagame-chart .legend-label {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+/* Recharts makes pie sectors focusable; suppress the black focus outline that
+   appears when a slice is clicked. */
+.metagame-chart :focus,
+.metagame-chart :focus-visible,
+.metagame-chart .recharts-sector:focus,
+.metagame-chart .recharts-wrapper:focus {
+  outline: none;
+}
+
+/* Custom tooltip shown on slice hover. */
+.chart-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.chart-tooltip div {
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
 /* Standard data table: header rule + row separators + cell padding. Replaces the
    inline border/padding styles that used to be repeated on every th/td. */
 .data-table {

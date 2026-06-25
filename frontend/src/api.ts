@@ -317,6 +317,22 @@ export function fetchMatchup(archetype: string, opponent: string, source: string
   return apiGet(`/api/matchups?${params}`);
 }
 
+// One archetype's slice of the recorded-tournament metagame.
+export interface ArchetypeMetagameRow {
+  archetype: string;
+  players: number;
+  share: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number | null;
+}
+
+// Archetype representation + match record across all recorded tournaments.
+export function fetchTournamentMetagame(): Promise<ArchetypeMetagameRow[]> {
+  return apiGet(`/api/matchups/tournament-metagame`);
+}
+
 // --- Swiss tournament manager (separate from the metagame stats above) ----------
 
 export interface TournamentSummary {

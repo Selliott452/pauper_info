@@ -14,6 +14,7 @@ import { CompetitorsPage } from "./CompetitorsPage.tsx";
 import { CompetitorPage } from "./CompetitorPage.tsx";
 import { RandomDeckPage } from "./RandomDeckPage.tsx";
 import { MatchupsPage } from "./MatchupsPage.tsx";
+import { MetagamePage } from "./MetagamePage.tsx";
 import { MatchesPage } from "./MatchesPage.tsx";
 import { CasualPlayersPage } from "./CasualPlayersPage.tsx";
 import { CasualPlayerPage } from "./CasualPlayerPage.tsx";
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/decks" element={<DecksPage />} />
             <Route path="/decks/:id" element={<DeckPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
+            <Route path="/tournaments/metagame" element={<MetagamePage />} />
             <Route path="/tournaments/:id" element={<TournamentPage />} />
             <Route path="/players" element={<CompetitorsPage />} />
             <Route path="/players/:id" element={<CompetitorPage />} />
