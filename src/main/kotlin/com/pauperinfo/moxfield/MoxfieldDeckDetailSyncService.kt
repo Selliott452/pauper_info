@@ -3,13 +3,12 @@ package com.pauperinfo.moxfield
 import com.pauperinfo.card.enums.Color
 import com.pauperinfo.card.repositories.CardRepository
 import com.pauperinfo.deck.Board
-import com.pauperinfo.deck.Deck
 import com.pauperinfo.deck.DeckCard
+import com.pauperinfo.deck.DeckPersistenceService
 import com.pauperinfo.deck.DeckRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -18,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class MoxfieldDeckDetailSyncService(
     private val deckRepository: DeckRepository,
+    private val deckPersistenceService: DeckPersistenceService,
     private val cardRepository: CardRepository,
     private val moxfieldClient: MoxfieldClient,
 ) {
@@ -51,8 +51,8 @@ class MoxfieldDeckDetailSyncService(
                         log.info("Deck detail sync progress: $done / ${pending.size} (${illegal.get()} illegal removed, ${failed.get()} failed)")
                     }
                 } catch (e: DeckNotFoundException) {
-                    log.info("Deleting deck $deckId — no longer exists on Moxfield")
-                    deleteByPublicId(deckId)
+                    log.info("Deleting deck $deckId - no longer exists on Moxfield")
+                    deckPersistenceService.deleteByPublicId(deckId)
                     failed.incrementAndGet()
                 } catch (e: Exception) {
                     log.warn("Failed to fetch deck $deckId: ${e.message}")
@@ -66,13 +66,15 @@ class MoxfieldDeckDetailSyncService(
         log.info("Deck detail sync complete: ${completed.get()} processed, ${illegal.get()} illegal removed, ${failed.get()} failed")
     }
 
-    // Returns false (and deletes the deck) if it is not pauper-legal.
-    @Transactional
+    // Returns false (and deletes the deck) if it is not pauper-legal. The HTTP fetch
+    // and card mapping run here, outside any transaction; only the final persist opens
+    // one (via DeckPersistenceService), so no DB connection is held during the slow
+    // Moxfield fetch — critical against a remote DB.
     fun fetchAndPersist(publicId: String, nameToId: Map<String, Int>): Boolean {
         val detail = moxfieldClient.fetchDeckDetail(publicId)
 
         if (!DeckLegality.isPauperLegal(detail)) {
-            deleteByPublicId(publicId)
+            deckPersistenceService.deleteByPublicId(publicId)
             return false
         }
 
@@ -88,11 +90,7 @@ class MoxfieldDeckDetailSyncService(
             .fold(0) { acc, (_, _, quantity) -> acc + quantity }
             .map { (key, quantity) -> DeckCard(key.first, quantity, key.second) }
 
-        // The deck row was created (id-only) during discovery; reuse its surrogate id
-        // so we update in place rather than violating the public_id unique constraint.
-        val existingId = deckRepository.findByPublicId(publicId)?.id ?: 0
-        val deck = Deck(
-            id = existingId,
+        deckPersistenceService.saveDeckDetail(
             publicId = detail.publicId,
             name = detail.name,
             author = detail.createdByUser.userName,
@@ -101,13 +99,7 @@ class MoxfieldDeckDetailSyncService(
             updatedAt = OffsetDateTime.parse(detail.lastUpdatedAtUtc),
             cards = cards,
         )
-        deckRepository.save(deck)
         return true
-    }
-
-    @Transactional
-    fun deleteByPublicId(publicId: String) {
-        deckRepository.findByPublicId(publicId)?.let { deckRepository.delete(it) }
     }
 
     companion object {

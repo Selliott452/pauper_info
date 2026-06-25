@@ -2,9 +2,11 @@ package com.pauperinfo.archetype
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.common.util.concurrent.RateLimiter
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.net.URI
+import java.net.http.HttpClient
 
 // Fetches mtgdecks.net pages through the curl_cffi sidecar (which bypasses
 // Cloudflare). The sidecar just returns raw HTML; all parsing happens in Kotlin.
@@ -13,7 +15,17 @@ class MtgDecksClient {
 
     private val objectMapper = jacksonObjectMapper()
     private val rateLimiter = RateLimiter.create(REQUESTS_PER_SECOND)
-    private val proxyClient = RestClient.builder().build()
+
+    // Pin to HTTP/1.1: the JDK HttpClient otherwise attempts an h2c upgrade against the
+    // plaintext sidecar, which uvicorn rejects while silently dropping the request
+    // body, causing FastAPI to return 422 ("Field required").
+    private val proxyClient = RestClient.builder()
+        .requestFactory(
+            JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
+            )
+        )
+        .build()
 
     fun fetch(url: String): String {
         rateLimiter.acquire()

@@ -6,22 +6,25 @@ import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.util.Base64
 
 @Service
 class ArchetypeScrapeService(
     private val client: MtgDecksClient,
-    private val archetypeCardRepository: ArchetypeCardRepository,
-    private val archetypeMatchupRepository: ArchetypeMatchupRepository,
+    private val archetypePersistenceService: ArchetypePersistenceService,
     private val cardRepository: CardRepository,
 ) {
 
     private val log = LoggerFactory.getLogger(ArchetypeScrapeService::class.java)
 
+    // Not @Transactional: the multi-minute, rate-limited mtgdecks scraping below must
+    // not hold a DB connection. Each delete+save swap runs in its own short
+    // transaction via ArchetypePersistenceService.
     @Async
-    @Transactional
     fun scrape() {
+
+        log.info("Scraping archetypes from mtgdecks")
+
         // mtgdecks lists double-faced cards by their front-face name ("Delver of
         // Secrets"), but our decks/cards use the full Scryfall name ("Delver of
         // Secrets // Insectile Aberration"). Map front-face -> canonical so profile
@@ -38,8 +41,7 @@ class ArchetypeScrapeService(
         val winratesDoc = Jsoup.parse(client.fetch("$BASE/Pauper/winrates"))
 
         val matchups = parseMatchups(winratesDoc)
-        archetypeMatchupRepository.deleteAllInBatch()
-        archetypeMatchupRepository.saveAll(matchups)
+        archetypePersistenceService.replaceMatchups(matchups)
         log.info("Stored ${matchups.size} archetype matchup rows")
 
         val archetypes = archetypeSlugs(winratesDoc)
@@ -60,8 +62,7 @@ class ArchetypeScrapeService(
             if (++done % 20 == 0) log.info("Profiles: $done/${archetypes.size}")
         }
 
-        archetypeCardRepository.deleteAllInBatch()
-        archetypeCardRepository.saveAll(rows)
+        archetypePersistenceService.replaceArchetypeCards(rows)
         log.info("Stored ${rows.size} archetype-card rows across ${archetypes.size - failed} archetypes ($failed failed)")
     }
 
@@ -126,6 +127,7 @@ class ArchetypeScrapeService(
                 rows.add(ArchetypeMatchup(archetype, opponent, winrate, matches))
             }
         }
+        log.info("Found ${rows.size} matchups.")
         return rows
     }
 
