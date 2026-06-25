@@ -55,7 +55,7 @@ jobs:
 
       - name: Build and push image with jib
         run: |
-          ./gradlew jib \
+          bash ./gradlew jib \
             -Djib.to.image=$IMAGE:${{ github.sha }} \
             -Djib.to.tags=latest
 
