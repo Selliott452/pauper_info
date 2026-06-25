@@ -4,6 +4,7 @@ plugins {
 	kotlin("plugin.jpa") version "2.3.21"
 	id("org.springframework.boot") version "4.1.0"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("com.google.cloud.tools.jib") version "3.4.4"
 }
 
 group = "com.pauperinfo"
@@ -44,4 +45,22 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+jib {
+	from {
+		// Eclipse Temurin JRE 17 on Ubuntu (full distro, not distroless) so the app
+		// has the shared libraries Playwright's bundled browsers need at runtime.
+		image = "eclipse-temurin:17-jre"
+	}
+	to {
+		// Overridden on the CLI in CI: -Djib.to.image=REGION-docker.pkg.dev/PROJECT/REPO/pauper-info:TAG
+		image = "pauper-info"
+	}
+	container {
+		ports = listOf("8080")
+		// Cloud Run sets $PORT; Spring honours SERVER_PORT.
+		environment = mapOf("SERVER_PORT" to "8080")
+		jvmFlags = listOf("-XX:MaxRAMPercentage=75")
+	}
 }
