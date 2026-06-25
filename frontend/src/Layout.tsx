@@ -9,10 +9,10 @@ function navClass(active: boolean): string {
 // groups: the metagame stats pages and the (separate) tournament manager.
 export function Layout() {
   const { pathname } = useLocation();
-  const onArchetypes = pathname === "/" || pathname.startsWith("/archetypes");
+  const onArchetypes = pathname.startsWith("/archetypes");
   const onCards = pathname.startsWith("/cards");
   const onDecks = pathname.startsWith("/decks");
-  const onRandom = pathname.startsWith("/random");
+  const onRandom = pathname === "/";
   const onMatchups = pathname.startsWith("/matchups");
   const onTournaments = pathname.startsWith("/tournaments");
   const onPlayers = pathname.startsWith("/players");
@@ -27,7 +27,7 @@ export function Layout() {
         </Link>
 
         <div className="nav-group-label">Discover</div>
-        <Link to="/random" className={navClass(onRandom)}>
+        <Link to="/" className={navClass(onRandom)}>
           <IconArrowsShuffle size={18} stroke={2} />
           Random deck
         </Link>
@@ -57,7 +57,7 @@ export function Layout() {
         </Link>
 
         <div className="nav-group-label">Metagame</div>
-        <Link to="/" className={navClass(onArchetypes)}>
+        <Link to="/archetypes" className={navClass(onArchetypes)}>
           <IconAffiliate size={18} stroke={2} />
           Archetypes
         </Link>

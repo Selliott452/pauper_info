@@ -29,9 +29,9 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/random" element={<RandomDeckPage />} />
+            <Route path="/" element={<RandomDeckPage />} />
             <Route path="/matchups" element={<MatchupsPage />} />
-            <Route path="/" element={<ArchetypesPage />} />
+            <Route path="/archetypes" element={<ArchetypesPage />} />
             <Route path="/archetypes/:name" element={<ArchetypePage />} />
             <Route path="/cards" element={<StatisticsPage />} />
             <Route path="/cards/:name" element={<CardPage />} />
