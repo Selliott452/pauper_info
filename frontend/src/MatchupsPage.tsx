@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchArchetypes, fetchMatchup } from "./api";
-import { ComboBox } from "./ComboBox";
 import { Loading } from "./QueryState";
 import { pct } from "./format";
 
@@ -42,11 +41,25 @@ export function MatchupsPage() {
       <div className="filter-panel">
         <div className="filter-row">
           <span className="filter-label">Your deck</span>
-          <ComboBox value={archetype} onChange={setArchetype} options={archetypeNames} placeholder="Your archetype" inputStyle={{ width: 200 }} />
+          <select className="text-input" value={archetype} onChange={(e) => setArchetype(e.target.value)} style={{ width: 200 }}>
+            <option value="">Your archetype</option>
+            {archetypeNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
           <span className="filter-label" style={{ width: "auto", marginLeft: "1rem" }}>
             vs
           </span>
-          <ComboBox value={opponent} onChange={setOpponent} options={archetypeNames} placeholder="Opponent archetype" inputStyle={{ width: 200 }} />
+          <select className="text-input" value={opponent} onChange={(e) => setOpponent(e.target.value)} style={{ width: 200 }}>
+            <option value="">Opponent archetype</option>
+            {archetypeNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="filter-row">
           <span className="filter-label">Source</span>
