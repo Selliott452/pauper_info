@@ -99,6 +99,7 @@ export function ArchetypesPage() {
   return (
     <main className="page">
       <h1>Pauper Archetypes</h1>
+      <p className="page-subtitle">The commons-only metagame, deck by deck.</p>
 
       <div className="filter-panel">
         <div className="filter-row">
