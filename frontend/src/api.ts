@@ -333,6 +333,11 @@ export function fetchTournamentMetagame(): Promise<ArchetypeMetagameRow[]> {
   return apiGet(`/api/matchups/tournament-metagame`);
 }
 
+// Same breakdown over recorded casual matches (representation by appearances).
+export function fetchCasualMetagame(): Promise<ArchetypeMetagameRow[]> {
+  return apiGet(`/api/matchups/casual-metagame`);
+}
+
 // --- Swiss tournament manager (separate from the metagame stats above) ----------
 
 export interface TournamentSummary {

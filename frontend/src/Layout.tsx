@@ -21,6 +21,7 @@ export function Layout() {
   const onTournaments = pathname.startsWith("/tournaments") && !onMetagame;
   const onPlayers = pathname.startsWith("/players");
   const onCasualPlayers = pathname.startsWith("/matches/players");
+  const onCasualMetagame = pathname === "/matches/metagame";
   const onMatches = pathname === "/matches";
 
   return (
@@ -69,6 +70,10 @@ export function Layout() {
           <Link to="/matches" className={navClass(onMatches)}>
             <IconSwords size={18} stroke={2} />
             Matches
+          </Link>
+          <Link to="/matches/metagame" className={navClass(onCasualMetagame)}>
+            <IconChartPie size={18} stroke={2} />
+            Metagame
           </Link>
           <Link to="/matches/players" className={navClass(onCasualPlayers)}>
             <IconUsers size={18} stroke={2} />

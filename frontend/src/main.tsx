@@ -15,6 +15,7 @@ import { CompetitorPage } from "./CompetitorPage.tsx";
 import { RandomDeckPage } from "./RandomDeckPage.tsx";
 import { MatchupsPage } from "./MatchupsPage.tsx";
 import { MetagamePage } from "./MetagamePage.tsx";
+import { CasualMetagamePage } from "./CasualMetagamePage.tsx";
 import { MatchesPage } from "./MatchesPage.tsx";
 import { CasualPlayersPage } from "./CasualPlayersPage.tsx";
 import { CasualPlayerPage } from "./CasualPlayerPage.tsx";
@@ -44,6 +45,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/players" element={<CompetitorsPage />} />
             <Route path="/players/:id" element={<CompetitorPage />} />
             <Route path="/matches" element={<MatchesPage />} />
+            <Route path="/matches/metagame" element={<CasualMetagamePage />} />
             <Route path="/matches/players" element={<CasualPlayersPage />} />
             <Route path="/matches/players/:id" element={<CasualPlayerPage />} />
           </Route>

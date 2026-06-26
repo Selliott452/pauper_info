@@ -19,4 +19,8 @@ class MatchupController(private val matchupService: MatchupService) {
     // Archetype breakdown of recorded tournaments (representation + match record).
     @GetMapping("/tournament-metagame")
     fun tournamentMetagame(): List<ArchetypeMetagameRow> = matchupService.tournamentMetagame()
+
+    // Archetype breakdown of recorded casual matches (representation + match record).
+    @GetMapping("/casual-metagame")
+    fun casualMetagame(): List<ArchetypeMetagameRow> = matchupService.casualMetagame()
 }

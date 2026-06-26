@@ -98,6 +98,70 @@ class MatchupService(@PersistenceContext private val entityManager: EntityManage
         }.sortedWith(compareByDescending<ArchetypeMetagameRow> { it.players }.thenBy { it.archetype.lowercase() })
     }
 
+    // The archetype breakdown of recorded casual matches. Unlike tournaments there's
+    // no per-event roster, so representation is counted by archetype appearances
+    // across matches (each match contributes up to two). Records are W-L-D over
+    // matches where both archetypes are known.
+    @Suppress("UNCHECKED_CAST")
+    fun casualMetagame(): List<ArchetypeMetagameRow> {
+        val appearanceRows = entityManager.createNativeQuery(
+            """
+            SELECT lower(btrim(arch)) AS key, min(btrim(arch)) AS label, count(*) AS n
+            FROM (
+                SELECT player1_archetype AS arch FROM casual.match
+                WHERE player1_archetype IS NOT NULL AND btrim(player1_archetype) <> ''
+                UNION ALL
+                SELECT player2_archetype AS arch FROM casual.match
+                WHERE player2_archetype IS NOT NULL AND btrim(player2_archetype) <> ''
+            ) t
+            GROUP BY lower(btrim(arch))
+            """.trimIndent()
+        ).resultList as List<Array<Any?>>
+
+        val totalAppearances = appearanceRows.sumOf { (it[2] as Number).toInt() }
+
+        val matchRows = entityManager.createNativeQuery(
+            """
+            SELECT player1_archetype, player2_archetype, player1_wins, player2_wins
+            FROM casual.match
+            WHERE player1_archetype IS NOT NULL AND btrim(player1_archetype) <> ''
+              AND player2_archetype IS NOT NULL AND btrim(player2_archetype) <> ''
+            """.trimIndent()
+        ).resultList as List<Array<Any?>>
+
+        // key -> [wins, losses, draws]
+        val record = HashMap<String, IntArray>()
+        fun bucket(key: String) = record.getOrPut(key) { IntArray(3) }
+        for (r in matchRows) {
+            val k1 = (r[0] as String).trim().lowercase()
+            val k2 = (r[1] as String).trim().lowercase()
+            val p1Wins = (r[2] as Number).toInt()
+            val p2Wins = (r[3] as Number).toInt()
+            when {
+                p1Wins > p2Wins -> { bucket(k1)[0]++; bucket(k2)[1]++ }
+                p1Wins < p2Wins -> { bucket(k1)[1]++; bucket(k2)[0]++ }
+                else -> { bucket(k1)[2]++; bucket(k2)[2]++ }
+            }
+        }
+
+        return appearanceRows.map { row ->
+            val key = row[0] as String
+            val label = row[1] as String
+            val appearances = (row[2] as Number).toInt()
+            val b = record[key] ?: IntArray(3)
+            val games = b[0] + b[1] + b[2]
+            ArchetypeMetagameRow(
+                archetype = label,
+                players = appearances,
+                share = if (totalAppearances == 0) 0.0 else round3(appearances.toDouble() / totalAppearances),
+                wins = b[0],
+                losses = b[1],
+                draws = b[2],
+                winRate = if (games == 0) null else round3(b[0].toDouble() / games),
+            )
+        }.sortedWith(compareByDescending<ArchetypeMetagameRow> { it.players }.thenBy { it.archetype.lowercase() })
+    }
+
     private fun round3(v: Double): Double = Math.round(v * 1000) / 1000.0
 
     fun matchup(archetype: String, opponent: String, source: String): MatchupResult = when (source) {
