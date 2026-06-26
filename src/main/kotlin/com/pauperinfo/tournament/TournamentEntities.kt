@@ -38,6 +38,10 @@ class Event(
     @Column(name = "event_date")
     var eventDate: LocalDate? = null,
 
+    // Optional round length in minutes for the round timer. Null = no timer.
+    @Column(name = "round_minutes")
+    var roundMinutes: Int? = null,
+
     @Column(name = "created_at")
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 )
@@ -82,6 +86,15 @@ class Round(
 
     // Mutable so rounds can be re-sequenced when one is deleted.
     var number: Int,
+
+    // Round-timer state. While running, timerEndsAt holds the wall-clock end and
+    // timerRemainingSeconds is null; while paused, timerRemainingSeconds holds the
+    // frozen seconds left and timerEndsAt is null. Both null = not started/reset.
+    @Column(name = "timer_ends_at")
+    var timerEndsAt: OffsetDateTime? = null,
+
+    @Column(name = "timer_remaining_seconds")
+    var timerRemainingSeconds: Int? = null,
 )
 
 @Entity

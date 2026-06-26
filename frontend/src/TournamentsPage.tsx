@@ -19,6 +19,7 @@ export function TournamentsPage() {
 
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
+  const [roundMinutes, setRoundMinutes] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [sort, setSort] = useState<{ col: SortKey; dir: SortDir }>({ col: "date", dir: "desc" });
 
@@ -46,6 +47,7 @@ export function TournamentsPage() {
         name,
         players,
         date: date || undefined,
+        roundMinutes: roundMinutes ? Number(roundMinutes) : undefined,
       }),
     onSuccess: (t) => {
       queryClient.invalidateQueries({ queryKey: ["tournaments"] });
@@ -87,6 +89,18 @@ export function TournamentsPage() {
             className="text-input"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+          />
+          <span className="filter-label" style={{ width: "auto" }}>
+            Round time
+          </span>
+          <input
+            type="number"
+            min={0}
+            className="text-input"
+            value={roundMinutes}
+            onChange={(e) => setRoundMinutes(e.target.value)}
+            placeholder="mins"
+            style={{ width: 80 }}
           />
         </div>
         <MultiCombobox label="Players" options={competitorNames} value={players} onChange={setPlayers} placeholder="Add a player…" allowNew />

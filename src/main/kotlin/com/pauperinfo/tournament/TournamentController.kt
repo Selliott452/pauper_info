@@ -57,6 +57,14 @@ class TournamentController(private val swissService: SwissService) {
     fun deleteRound(@PathVariable id: Int, @PathVariable roundId: Int): TournamentDetail =
         swissService.deleteRound(id, roundId)
 
+    // Start/pause/resume/reset a round's timer.
+    @PostMapping("/{id}/rounds/{roundId}/timer/{action}")
+    fun roundTimer(
+        @PathVariable id: Int,
+        @PathVariable roundId: Int,
+        @PathVariable action: String,
+    ): TournamentDetail = swissService.roundTimer(id, roundId, action)
+
     @DeleteMapping("/{id}/matches/{matchId}")
     fun deleteMatch(@PathVariable id: Int, @PathVariable matchId: Int): TournamentDetail =
         swissService.deleteMatch(id, matchId)

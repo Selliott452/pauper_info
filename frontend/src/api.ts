@@ -378,6 +378,10 @@ export interface RoundView {
   id: number;
   number: number;
   matches: MatchView[];
+  // Timer state: timerEndsAt (ISO) is set while running, timerRemainingSeconds
+  // while paused; both null when the timer hasn't been started.
+  timerEndsAt: string | null;
+  timerRemainingSeconds: number | null;
 }
 
 export interface TournamentDetail {
@@ -386,6 +390,7 @@ export interface TournamentDetail {
   date: string | null;
   status: string;
   currentRound: number;
+  roundMinutes: number | null;
   canPair: boolean;
   standings: PlayerStanding[];
   roundViews: RoundView[];
@@ -399,12 +404,18 @@ export function fetchTournament(id: number): Promise<TournamentDetail> {
   return apiGet(`/api/tournaments/${id}`);
 }
 
-export function createTournament(body: { name: string; players: string[]; date?: string }) {
+export function createTournament(body: { name: string; players: string[]; date?: string; roundMinutes?: number | null }) {
   return apiSend<TournamentDetail>("POST", `/api/tournaments`, body);
 }
 
-export function updateTournament(id: number, body: { name: string; date: string | null }) {
+export function updateTournament(id: number, body: { name: string; date: string | null; roundMinutes: number | null }) {
   return apiSend<TournamentDetail>("PATCH", `/api/tournaments/${id}`, body);
+}
+
+export type TimerAction = "start" | "pause" | "resume" | "reset";
+
+export function roundTimer(id: number, roundId: number, action: TimerAction) {
+  return apiSend<TournamentDetail>("POST", `/api/tournaments/${id}/rounds/${roundId}/timer/${action}`);
 }
 
 export function pairRound(id: number) {

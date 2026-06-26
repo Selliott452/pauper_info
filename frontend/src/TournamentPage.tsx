@@ -21,11 +21,13 @@ import {
   rejoinPlayer,
   reopenTournament,
   reportResult,
+  roundTimer,
   updatePlayer,
   updateTournament,
   type MatchView,
   type PlayerStanding,
   type RoundView,
+  type TimerAction,
   type TournamentDetail,
 } from "./api";
 
@@ -58,6 +60,10 @@ export function TournamentPage() {
     onSuccess: setData,
   });
   const removeMatch = useMutation({ mutationFn: (matchId: number) => deleteMatch(id, matchId), onSuccess: setData });
+  const timer = useMutation({
+    mutationFn: (v: { roundId: number; action: TimerAction }) => roundTimer(id, v.roundId, v.action),
+    onSuccess: setData,
+  });
   const removeRound = useMutation({ mutationFn: (roundId: number) => deleteRound(id, roundId), onSuccess: setData });
   const updateDeck = useMutation({
     mutationFn: (v: { playerId: number; archetype: string | null; deckUrl: string | null }) =>
@@ -82,8 +88,14 @@ export function TournamentPage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editRoundMinutes, setEditRoundMinutes] = useState("");
   const update = useMutation({
-    mutationFn: () => updateTournament(id, { name: editName, date: editDate || null }),
+    mutationFn: () =>
+      updateTournament(id, {
+        name: editName,
+        date: editDate || null,
+        roundMinutes: editRoundMinutes ? Number(editRoundMinutes) : null,
+      }),
     onSuccess: (d) => {
       setData(d);
       setEditing(false);
@@ -122,6 +134,15 @@ export function TournamentPage() {
             style={{ width: 260 }}
           />
           <input type="date" className="text-input" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+          <input
+            type="number"
+            min={0}
+            className="text-input"
+            value={editRoundMinutes}
+            onChange={(e) => setEditRoundMinutes(e.target.value)}
+            placeholder="round mins"
+            style={{ width: 110 }}
+          />
           <button className="pill active" disabled={!editName.trim() || update.isPending} onClick={() => update.mutate()}>
             Save
           </button>
@@ -135,12 +156,14 @@ export function TournamentPage() {
           <span style={{ color: "#666" }}>
             {data.date ? `${data.date} · ` : ""}
             {data.status} · {data.currentRound} round{data.currentRound === 1 ? "" : "s"}
+            {data.roundMinutes ? ` · ${data.roundMinutes} min rounds` : ""}
           </span>
           <button
             className="pill"
             onClick={() => {
               setEditName(data.name);
               setEditDate(data.date ?? "");
+              setEditRoundMinutes(data.roundMinutes ? String(data.roundMinutes) : "");
               setEditing(true);
             }}
           >
@@ -261,11 +284,13 @@ export function TournamentPage() {
           key={round.id}
           round={round}
           locked={data.status === "COMPLETE"}
+          roundMinutes={data.roundMinutes}
           players={data.standings.map((s) => ({ id: s.playerId, name: s.name }))}
           onReport={(matchId, p1, p2, draws) => report.mutate({ matchId, p1, p2, draws })}
           onRemove={(matchId) => removeMatch.mutate(matchId)}
           onAddPairing={(player1Id, player2Id) => addPairing.mutate({ roundId: round.id, player1Id, player2Id })}
           onDeleteRound={() => removeRound.mutate(round.id)}
+          onTimer={(action) => timer.mutate({ roundId: round.id, action })}
         />
       ))}
     </main>
@@ -275,19 +300,23 @@ export function TournamentPage() {
 function RoundBlock({
   round,
   locked,
+  roundMinutes,
   players,
   onReport,
   onRemove,
   onAddPairing,
   onDeleteRound,
+  onTimer,
 }: {
   round: RoundView;
   locked: boolean;
+  roundMinutes: number | null;
   players: PlayerOption[];
   onReport: (matchId: number, p1: number, p2: number, draws: number) => void;
   onRemove: (matchId: number) => void;
   onAddPairing: (player1Id: number, player2Id: number | null) => void;
   onDeleteRound: () => void;
+  onTimer: (action: TimerAction) => void;
 }) {
   const confirmDelete = useConfirm(onDeleteRound, {
     title: `Delete round ${round.number}?`,
@@ -313,6 +342,7 @@ function RoundBlock({
           </button>
         )}
         {confirmDelete.dialog}
+        {!locked && roundMinutes != null && <RoundTimer round={round} roundMinutes={roundMinutes} onTimer={onTimer} />}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {[...round.matches]
@@ -328,6 +358,68 @@ function RoundBlock({
         ))}
         {!locked && available.length > 0 && <AddPairing players={available} onAdd={onAddPairing} />}
       </div>
+    </div>
+  );
+}
+
+// A live round timer. Server state is the source of truth: while running the
+// round carries timerEndsAt (a wall-clock instant) and we tick locally toward it;
+// while paused it carries timerRemainingSeconds (a frozen value).
+function RoundTimer({
+  round,
+  roundMinutes,
+  onTimer,
+}: {
+  round: RoundView;
+  roundMinutes: number;
+  onTimer: (action: TimerAction) => void;
+}) {
+  const running = round.timerEndsAt != null;
+  const paused = round.timerRemainingSeconds != null;
+
+  // Re-render every second while running so the countdown advances.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+
+  let seconds: number;
+  if (running) seconds = Math.max(0, Math.round((Date.parse(round.timerEndsAt!) - Date.now()) / 1000));
+  else if (paused) seconds = round.timerRemainingSeconds!;
+  else seconds = roundMinutes * 60;
+
+  const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
+  const expired = running && seconds === 0;
+  const color = expired ? "#dc2626" : running ? "#16a34a" : "#444";
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginLeft: "auto" }}>
+      <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, fontSize: "1.1rem", color, minWidth: "3.5ch" }}>
+        {expired ? "Time!" : `${mm}:${ss}`}
+      </span>
+      {!running && !paused && (
+        <button className="pill" onClick={() => onTimer("start")}>
+          Start
+        </button>
+      )}
+      {running && (
+        <button className="pill" onClick={() => onTimer("pause")}>
+          Pause
+        </button>
+      )}
+      {paused && (
+        <button className="pill" onClick={() => onTimer("resume")}>
+          Resume
+        </button>
+      )}
+      {(running || paused) && (
+        <button className="pill" onClick={() => onTimer("reset")}>
+          Reset
+        </button>
+      )}
     </div>
   );
 }

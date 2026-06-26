@@ -4,7 +4,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.Duration
 import java.time.LocalDate
+import java.time.OffsetDateTime
 
 @Service
 class SwissService(
@@ -26,6 +28,7 @@ class SwissService(
                 name = request.name.trim().ifEmpty { "Untitled" },
                 status = "ACTIVE",
                 eventDate = parseDate(request.date),
+                roundMinutes = normalizeMinutes(request.roundMinutes),
             ),
         )
         // Resolve each name to an existing competitor (case-insensitive) or create one,
@@ -57,12 +60,16 @@ class SwissService(
         val event = event(eventId)
         if (request.name.isNotBlank()) event.name = request.name.trim()
         event.eventDate = parseDate(request.date)
+        event.roundMinutes = normalizeMinutes(request.roundMinutes)
         eventRepository.save(event)
         return detail(eventId)
     }
 
     private fun parseDate(value: String?): LocalDate? =
         value?.trim()?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
+
+    // A non-positive or null round length means "no timer".
+    private fun normalizeMinutes(value: Int?): Int? = value?.takeIf { it > 0 }
 
     // Mark finished (locks pairing/drops) or reopen for more rounds.
     @Transactional
@@ -211,6 +218,52 @@ class SwissService(
         return detail(eventId)
     }
 
+    // --- round timer --------------------------------------------------------------
+
+    /**
+     * Drives a round's timer. Actions:
+     *  - start:  begin a fresh countdown of the tournament's round length.
+     *  - pause:  freeze the remaining time.
+     *  - resume: resume a paused countdown.
+     *  - reset:  clear the timer back to not-started.
+     */
+    @Transactional
+    fun roundTimer(eventId: Int, roundId: Int, action: String): TournamentDetail {
+        requireActive(eventId)
+        val round = roundRepository.findById(roundId).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such round")
+        }
+        if (round.eventId != eventId) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Round is not in this tournament")
+        }
+        val now = OffsetDateTime.now()
+        when (action) {
+            "start" -> {
+                val minutes = event(eventId).roundMinutes
+                    ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Set a round length first")
+                round.timerEndsAt = now.plusMinutes(minutes.toLong())
+                round.timerRemainingSeconds = null
+            }
+            "pause" -> {
+                val endsAt = round.timerEndsAt ?: return detail(eventId)
+                round.timerRemainingSeconds = maxOf(0, Duration.between(now, endsAt).seconds.toInt())
+                round.timerEndsAt = null
+            }
+            "resume" -> {
+                val remaining = round.timerRemainingSeconds ?: return detail(eventId)
+                round.timerEndsAt = now.plusSeconds(remaining.toLong())
+                round.timerRemainingSeconds = null
+            }
+            "reset" -> {
+                round.timerEndsAt = null
+                round.timerRemainingSeconds = null
+            }
+            else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown timer action")
+        }
+        roundRepository.save(round)
+        return detail(eventId)
+    }
+
     /** Pairs the next Swiss round and returns the updated tournament. */
     @Transactional
     fun pairNextRound(eventId: Int): TournamentDetail {
@@ -283,6 +336,8 @@ class SwissService(
             RoundView(
                 id = round.id,
                 number = round.number,
+                timerEndsAt = round.timerEndsAt?.toString(),
+                timerRemainingSeconds = round.timerRemainingSeconds,
                 matches = (matchesByRound[round.id] ?: emptyList()).map { m ->
                     MatchView(
                         matchId = m.id,
@@ -308,6 +363,7 @@ class SwissService(
             date = event.eventDate?.toString(),
             status = event.status,
             currentRound = rounds.size,
+            roundMinutes = event.roundMinutes,
             canPair = canPair,
             standings = computeStandings(players, matches),
             roundViews = roundViews,

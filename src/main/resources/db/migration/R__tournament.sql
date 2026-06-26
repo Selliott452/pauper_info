@@ -58,3 +58,12 @@ CREATE TABLE IF NOT EXISTS tournament.match (
 CREATE INDEX IF NOT EXISTS idx_tournament_player_event ON tournament.player (event_id);
 CREATE INDEX IF NOT EXISTS idx_tournament_round_event ON tournament.round (event_id);
 CREATE INDEX IF NOT EXISTS idx_tournament_match_round ON tournament.match (round_id);
+
+-- Optional per-tournament round length, in minutes. NULL means no round timer.
+ALTER TABLE tournament.event ADD COLUMN IF NOT EXISTS round_minutes INT;
+
+-- Per-round timer state. timer_ends_at is the wall-clock end while the clock is
+-- running; timer_remaining_seconds holds the frozen time left while paused. Both
+-- NULL means the round's timer hasn't been started (or was reset).
+ALTER TABLE tournament.round ADD COLUMN IF NOT EXISTS timer_ends_at TIMESTAMPTZ;
+ALTER TABLE tournament.round ADD COLUMN IF NOT EXISTS timer_remaining_seconds INT;

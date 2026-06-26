@@ -68,12 +68,16 @@ data class CreateTournamentRequest(
     val players: List<String>,
     // ISO date (yyyy-MM-dd) the tournament was/will be played, optional.
     val date: String? = null,
+    // Round length in minutes for the round timer; null/0 means no timer.
+    val roundMinutes: Int? = null,
 )
 
-// Edit a tournament's name and/or date. A blank date clears it.
+// Edit a tournament's name, date, and/or round timer length. A blank date clears
+// it; a null/0 roundMinutes clears the timer length.
 data class UpdateTournamentRequest(
     val name: String,
     val date: String? = null,
+    val roundMinutes: Int? = null,
 )
 
 // Manually add a pairing to a round. player2Id null creates a bye for player1.
@@ -140,6 +144,10 @@ data class RoundView(
     val id: Int,
     val number: Int,
     val matches: List<MatchView>,
+    // Round-timer state. timerEndsAt (ISO instant) is set while running;
+    // timerRemainingSeconds is set while paused. Both null = not started.
+    val timerEndsAt: String? = null,
+    val timerRemainingSeconds: Int? = null,
 )
 
 data class TournamentDetail(
@@ -148,6 +156,8 @@ data class TournamentDetail(
     val date: String?,
     val status: String,
     val currentRound: Int,
+    // Configured round length in minutes for the round timer; null = no timer.
+    val roundMinutes: Int?,
     // True when the next round can be paired (active and all current results in).
     val canPair: Boolean,
     val standings: List<PlayerStanding>,
