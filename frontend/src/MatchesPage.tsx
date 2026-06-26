@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ComboBox } from "./ComboBox";
 import { Modal } from "./Modal";
+import { downloadJson } from "./download";
 import {
   createCasualMatch,
   deleteCasualMatch,
@@ -56,9 +57,16 @@ export function MatchesPage() {
       <h1>Casual matches</h1>
       <p style={{ color: "#555", marginTop: 0 }}>One-off head-to-head matches, tracked separately from tournaments.</p>
 
-      <button className="pill active" onClick={() => setModal("new")} style={{ marginBottom: "1.25rem" }}>
-        Record match
-      </button>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+        <button className="pill active" onClick={() => setModal("new")}>
+          Record match
+        </button>
+        {matches && matches.length > 0 && (
+          <button className="pill" onClick={() => downloadJson("casual-matches", matches)} style={{ marginLeft: "auto" }}>
+            Export JSON
+          </button>
+        )}
+      </div>
 
       {matches && matches.length > 0 && (
         <>

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { createTournament, fetchCompetitors, fetchTournaments, type TournamentSummary } from "./api";
+import { createTournament, fetchCompetitors, fetchTournament, fetchTournaments, type TournamentSummary } from "./api";
 import { MultiCombobox } from "./ComboBox";
 import { SortableTh } from "./SortableTh";
 import { Loading } from "./QueryState";
+import { downloadJson } from "./download";
 
 type SortKey = "name" | "date" | "players" | "round" | "status";
 type SortDir = "asc" | "desc";
@@ -31,6 +32,14 @@ export function TournamentsPage() {
 
   const rows = data ? [...data].sort((a, b) => compareTournaments(a, b, sort.col, sort.dir)) : [];
 
+  // Export every tournament with its full detail (rounds, standings, results).
+  const exportAll = useMutation({
+    mutationFn: async () => {
+      const details = await Promise.all((data ?? []).map((t) => fetchTournament(t.id)));
+      downloadJson("tournaments", details);
+    },
+  });
+
   const create = useMutation({
     mutationFn: () =>
       createTournament({
@@ -50,7 +59,14 @@ export function TournamentsPage() {
 
   return (
     <main className="page">
-      <h1>Tournaments</h1>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
+        <h1>Tournaments</h1>
+        {data && data.length > 0 && (
+          <button className="pill" disabled={exportAll.isPending} onClick={() => exportAll.mutate()} style={{ marginLeft: "auto" }}>
+            {exportAll.isPending ? "Exporting…" : "Export JSON"}
+          </button>
+        )}
+      </div>
 
       <div className="filter-panel">
         <div className="filter-row">

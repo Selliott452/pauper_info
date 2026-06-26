@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { Loading, ErrorText } from "./QueryState";
 import { pct } from "./format";
 import { useConfirm } from "./useConfirm";
+import { downloadJson, slugify } from "./download";
 import {
   addMatch,
   addRound,
@@ -189,6 +190,13 @@ export function TournamentPage() {
             Mark complete
           </button>
         )}
+        <button
+          className="pill"
+          onClick={() => downloadJson(`tournament-${slugify(data.name)}`, data)}
+          style={{ marginLeft: "auto" }}
+        >
+          Export JSON
+        </button>
         <button
           className="pill"
           disabled={remove.isPending}
