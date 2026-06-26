@@ -596,7 +596,7 @@ export interface CasualPlayerDetail {
   archetypesPlayed: ArchetypeRecord[];
   vsPlayers: OpponentRecord[];
   vsArchetypes: ArchetypeRecord[];
-  recentMatches: CasualMatchView[];
+  matchHistory: CasualMatchView[];
 }
 
 export interface CreateCasualMatch {

@@ -59,5 +59,6 @@ data class CasualPlayerDetail(
     val archetypesPlayed: List<RecordLine>,
     val vsPlayers: List<OpponentLine>,
     val vsArchetypes: List<RecordLine>,
-    val recentMatches: List<CasualMatchView>,
+    // Full match history, most recent first (the frontend paginates it).
+    val matchHistory: List<CasualMatchView>,
 )

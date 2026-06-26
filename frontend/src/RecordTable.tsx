@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { IconEye } from "@tabler/icons-react";
 import { recordWinRate } from "./format";
 
 export interface RecordRow {
@@ -12,6 +13,9 @@ export interface RecordRow {
   gameWins?: number;
   gameLosses?: number;
   gameDraws?: number;
+  // When set, a "view" button is rendered that runs this callback (used to filter
+  // the match history on the casual player page).
+  onView?: () => void;
 }
 
 // A "label · record · win%" table shared by the competitor and casual player pages.
@@ -29,6 +33,7 @@ export function RecordTable({
   showGames?: boolean;
 }) {
   if (rows.length === 0) return null;
+  const hasActions = rows.some((r) => r.onView);
   return (
     <>
       <h2 style={{ margin: "1.5rem 0 0.5rem" }}>{heading}</h2>
@@ -39,6 +44,7 @@ export function RecordTable({
             <th className="center">{showGames ? "Match record" : "Record"}</th>
             {showGames && <th className="center">Game record</th>}
             <th className="num">Win%</th>
+            {hasActions && <th aria-label="View" />}
           </tr>
         </thead>
         <tbody>
@@ -54,6 +60,19 @@ export function RecordTable({
                 </td>
               )}
               <td className="num">{recordWinRate(r.wins, r.losses, r.draws)}</td>
+              {hasActions && (
+                <td className="num">
+                  {r.onView && (
+                    <button
+                      onClick={r.onView}
+                      title="View in match history"
+                      style={{ border: "none", background: "none", cursor: "pointer", color: "#2563eb", display: "inline-flex" }}
+                    >
+                      <IconEye size={16} stroke={2} />
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

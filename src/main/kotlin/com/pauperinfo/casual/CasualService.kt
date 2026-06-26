@@ -148,7 +148,7 @@ class CasualService(
             vsPlayers = byOpponent.entries
                 .map { (oid, agg) -> OpponentLine(oid, agg.name, agg.tally.wins, agg.tally.losses, agg.tally.draws) }
                 .sortedByDescending { it.wins + it.losses + it.draws },
-            recentMatches = matches.sortedByDescending { it.createdAt }.take(20).map { it.toView(names) },
+            matchHistory = matches.sortedByDescending { it.createdAt }.map { it.toView(names) },
         )
     }
 

@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
@@ -23,9 +24,63 @@ function side(name: string, playerId: number | null, arch: string | null, deck: 
   );
 }
 
+const PAGE_SIZE = 25;
+
 export function CasualPlayerPage() {
   const id = Number(useParams().id);
   const { data, isLoading } = useQuery({ queryKey: ["casual-player", id], queryFn: () => fetchCasualPlayer(id) });
+
+  const [page, setPage] = useState(0);
+  const [myArchFilter, setMyArchFilter] = useState("");
+  const [oppArchFilter, setOppArchFilter] = useState("");
+  const [oppFilter, setOppFilter] = useState("");
+
+  // Decorate each match with this player's perspective (their side vs the opponent's),
+  // so both the filters and the rendered rows work from the same derived fields.
+  const rows = (data?.matchHistory ?? []).map((m) => {
+    const meP1 = m.player1Id === id;
+    return {
+      m,
+      myWins: meP1 ? m.player1Wins : m.player2Wins,
+      oppWins: meP1 ? m.player2Wins : m.player1Wins,
+      oppId: meP1 ? m.player2Id : m.player1Id,
+      oppName: meP1 ? m.player2Name : m.player1Name,
+      myArch: meP1 ? m.player1Archetype : m.player2Archetype,
+      oppArch: meP1 ? m.player2Archetype : m.player1Archetype,
+      myDeck: meP1 ? m.player1DeckUrl : m.player2DeckUrl,
+      oppDeck: meP1 ? m.player2DeckUrl : m.player1DeckUrl,
+    };
+  });
+
+  // Distinct, sorted option lists for the dropdowns.
+  const sortedUnique = (vals: (string | null)[]) =>
+    [...new Set(vals.filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
+  const myArchetypes = sortedUnique(rows.map((r) => r.myArch));
+  const oppArchetypes = sortedUnique(rows.map((r) => r.oppArch));
+  const opponents = sortedUnique(rows.map((r) => r.oppName));
+
+  const filtered = rows.filter(
+    (r) =>
+      (!myArchFilter || r.myArch === myArchFilter) &&
+      (!oppArchFilter || r.oppArch === oppArchFilter) &&
+      (!oppFilter || r.oppName === oppFilter),
+  );
+
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  // Clamp in case the data shrank (e.g. switching players, applying a filter).
+  const safePage = Math.min(page, Math.max(0, pageCount - 1));
+  const visible = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
+  // Set a single match-history filter (clearing the others) and scroll to it.
+  const historyRef = useRef<HTMLHeadingElement>(null);
+  function viewHistory(apply: () => void) {
+    setMyArchFilter("");
+    setOppArchFilter("");
+    setOppFilter("");
+    apply();
+    setPage(0);
+    historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <main className="page">
@@ -42,7 +97,14 @@ export function CasualPlayerPage() {
           <RecordTable
             heading="Archetypes played"
             firstCol="Archetype"
-            rows={data.archetypesPlayed.map((a) => ({ key: archetypeLabel(a), label: <ArchetypeLink archetype={a.archetype} />, wins: a.wins, losses: a.losses, draws: a.draws }))}
+            rows={data.archetypesPlayed.map((a) => ({
+              key: archetypeLabel(a),
+              label: <ArchetypeLink archetype={a.archetype} />,
+              wins: a.wins,
+              losses: a.losses,
+              draws: a.draws,
+              onView: a.archetype ? () => viewHistory(() => setMyArchFilter(a.archetype!)) : undefined,
+            }))}
           />
 
           <RecordTable
@@ -54,18 +116,93 @@ export function CasualPlayerPage() {
               wins: o.wins,
               losses: o.losses,
               draws: o.draws,
+              onView: () => viewHistory(() => setOppFilter(o.opponentName)),
             }))}
           />
 
           <RecordTable
             heading="Record vs archetype"
             firstCol="Opponent archetype"
-            rows={data.vsArchetypes.map((a) => ({ key: archetypeLabel(a), label: <ArchetypeLink archetype={a.archetype} />, wins: a.wins, losses: a.losses, draws: a.draws }))}
+            rows={data.vsArchetypes.map((a) => ({
+              key: archetypeLabel(a),
+              label: <ArchetypeLink archetype={a.archetype} />,
+              wins: a.wins,
+              losses: a.losses,
+              draws: a.draws,
+              onView: a.archetype ? () => viewHistory(() => setOppArchFilter(a.archetype!)) : undefined,
+            }))}
           />
 
-          {data.recentMatches.length > 0 && (
+          {rows.length > 0 && (
             <>
-              <h2 style={{ margin: "1.5rem 0 0.5rem" }}>Recent matches</h2>
+              <h2 ref={historyRef} style={{ margin: "1.5rem 0 0.5rem", scrollMarginTop: "1rem" }}>
+                Match history{" "}
+                <span style={{ color: "#999", fontWeight: 400, fontSize: "1rem" }}>
+                  ({filtered.length === rows.length ? rows.length : `${filtered.length} of ${rows.length}`})
+                </span>
+              </h2>
+
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                <select
+                  className="text-input"
+                  value={myArchFilter}
+                  onChange={(e) => {
+                    setMyArchFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">All my archetypes</option>
+                  {myArchetypes.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="text-input"
+                  value={oppArchFilter}
+                  onChange={(e) => {
+                    setOppArchFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">All opponent archetypes</option>
+                  {oppArchetypes.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="text-input"
+                  value={oppFilter}
+                  onChange={(e) => {
+                    setOppFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">All opponents</option>
+                  {opponents.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+                {(myArchFilter || oppArchFilter || oppFilter) && (
+                  <button
+                    className="pill"
+                    onClick={() => {
+                      setMyArchFilter("");
+                      setOppArchFilter("");
+                      setOppFilter("");
+                      setPage(0);
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
               {/* One shared grid so columns size to their widest content across every
                   row — scores line up regardless of archetype-name length, without
                   the dead space two 1fr columns would leave. */}
@@ -78,16 +215,7 @@ export function CasualPlayerPage() {
                   fontSize: "0.9rem",
                 }}
               >
-                {data.recentMatches.map((m, i) => {
-                  const meP1 = m.player1Id === id;
-                  const myWins = meP1 ? m.player1Wins : m.player2Wins;
-                  const oppWins = meP1 ? m.player2Wins : m.player1Wins;
-                  const oppId = meP1 ? m.player2Id : m.player1Id;
-                  const oppName = meP1 ? m.player2Name : m.player1Name;
-                  const myArch = meP1 ? m.player1Archetype : m.player2Archetype;
-                  const oppArch = meP1 ? m.player2Archetype : m.player1Archetype;
-                  const myDeck = meP1 ? m.player1DeckUrl : m.player2DeckUrl;
-                  const oppDeck = meP1 ? m.player2DeckUrl : m.player1DeckUrl;
+                {visible.map(({ m, myWins, oppWins, oppId, oppName, myArch, oppArch, myDeck, oppDeck }, i) => {
                   const result = myWins > oppWins ? "W" : myWins < oppWins ? "L" : "D";
                   const cell = { padding: "0.4rem 0", borderTop: i === 0 ? "none" : "1px solid #f0f0f0" };
                   return (
@@ -112,6 +240,22 @@ export function CasualPlayerPage() {
                   );
                 })}
               </div>
+
+              {filtered.length === 0 && <p style={{ color: "#666" }}>No matches for these filters.</p>}
+
+              {pageCount > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem" }}>
+                  <button className="pill" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+                    Previous
+                  </button>
+                  <span style={{ color: "#666", fontSize: "0.9rem" }}>
+                    Page {safePage + 1} of {pageCount}
+                  </span>
+                  <button className="pill" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
+                    Next
+                  </button>
+                </div>
+              )}
             </>
           )}
         </>
