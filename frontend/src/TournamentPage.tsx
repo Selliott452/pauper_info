@@ -73,7 +73,11 @@ export function TournamentPage() {
       navigate("/tournaments");
     },
   });
-  const confirmDelete = useConfirm(() => remove.mutate());
+  const confirmDelete = useConfirm(() => remove.mutate(), {
+    title: "Delete tournament?",
+    message: "This permanently deletes the tournament along with all its rounds and results.",
+    confirmLabel: "Delete tournament",
+  });
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -197,15 +201,11 @@ export function TournamentPage() {
         >
           Export JSON
         </button>
-        <button
-          className="pill"
-          disabled={remove.isPending}
-          onClick={confirmDelete.onClick}
-          style={confirmDelete.armed ? { borderColor: "#dc2626", color: "#dc2626" } : undefined}
-        >
-          {confirmDelete.armed ? "Click again to confirm" : "Delete tournament"}
+        <button className="pill" disabled={remove.isPending} onClick={confirmDelete.onClick}>
+          Delete tournament
         </button>
       </div>
+      {confirmDelete.dialog}
       {pair.isError && <ErrorText message={(pair.error as Error).message} />}
       {remove.isError && <ErrorText message={(remove.error as Error).message} />}
 
@@ -289,7 +289,11 @@ function RoundBlock({
   onAddPairing: (player1Id: number, player2Id: number | null) => void;
   onDeleteRound: () => void;
 }) {
-  const confirmDelete = useConfirm(onDeleteRound);
+  const confirmDelete = useConfirm(onDeleteRound, {
+    title: `Delete round ${round.number}?`,
+    message: "This removes the round and any results recorded in it.",
+    confirmLabel: "Delete round",
+  });
 
   // Players already paired this round can't be added again.
   const paired = new Set<number>();
@@ -304,14 +308,11 @@ function RoundBlock({
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
         <h2 style={{ margin: 0 }}>Round {round.number}</h2>
         {!locked && (
-          <button
-            className="pill"
-            onClick={confirmDelete.onClick}
-            style={confirmDelete.armed ? { borderColor: "#dc2626", color: "#dc2626" } : undefined}
-          >
-            {confirmDelete.armed ? "Delete this round?" : "Delete round"}
+          <button className="pill" onClick={confirmDelete.onClick}>
+            Delete round
           </button>
         )}
+        {confirmDelete.dialog}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {[...round.matches]
@@ -449,7 +450,11 @@ function StandingRow({
   onRejoin: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const confirmDrop = useConfirm(onDrop);
+  const confirmDrop = useConfirm(onDrop, {
+    title: `Drop ${s.name}?`,
+    message: "They won't be paired in future rounds. You can rejoin them later.",
+    confirmLabel: "Drop player",
+  });
 
   const td = { padding: "0.4rem", borderBottom: "1px solid #eee" } as const;
   const center = { ...td, textAlign: "center" as const };
@@ -488,14 +493,11 @@ function StandingRow({
               Rejoin
             </button>
           ) : (
-            <button
-              className="pill"
-              style={{ marginLeft: 6, ...(confirmDrop.armed ? { borderColor: "#dc2626", color: "#dc2626" } : {}) }}
-              onClick={confirmDrop.onClick}
-            >
-              {confirmDrop.armed ? "Confirm?" : "Drop"}
+            <button className="pill" style={{ marginLeft: 6 }} onClick={confirmDrop.onClick}>
+              Drop
             </button>
           ))}
+        {confirmDrop.dialog}
       </td>
       {editing && (
         <DeckModal
