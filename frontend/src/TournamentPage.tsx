@@ -595,14 +595,14 @@ function ResultEntry({
   const [p2, setP2] = useState(match.reported ? String(match.player2Wins) : "");
   const [draws, setDraws] = useState(match.reported ? String(match.draws) : "");
 
-  // Auto-save shortly after the user stops typing - but only once all three fields
-  // are filled, and only when the result differs from what's stored (so mounting a
-  // match never reports a phantom result).
+  // Auto-save shortly after the user stops typing - but only once both win fields
+  // are filled (draws are optional and default to 0), and only when the result
+  // differs from what's stored (so mounting a match never reports a phantom result).
   useEffect(() => {
-    if (p1.trim() === "" || p2.trim() === "" || draws.trim() === "") return;
+    if (p1.trim() === "" || p2.trim() === "") return;
     const n1 = Number(p1);
     const n2 = Number(p2);
-    const nd = Number(draws);
+    const nd = draws.trim() === "" ? 0 : Number(draws);
     if ([n1, n2, nd].some((n) => Number.isNaN(n))) return;
     if (match.reported && n1 === match.player1Wins && n2 === match.player2Wins && nd === match.draws) return;
     const t = setTimeout(() => onReport(n1, n2, nd), 600);
