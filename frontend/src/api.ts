@@ -200,6 +200,10 @@ export interface ArchetypeDetail {
   colors: string[];
   overallWinrate: number | null;
   overallMatches: number | null;
+  tournamentWinrate: number | null;
+  tournamentMatches: number;
+  casualWinrate: number | null;
+  casualMatches: number;
   cards: ArchetypeCardWeight[];
   matchups: ArchetypeMatchupWeight[];
 }

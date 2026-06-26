@@ -158,6 +158,32 @@ a:hover {
   align-items: center;
 }
 
+/* Two side-by-side sections (e.g. archetype Matchups + classification) whose
+   inner rows align across columns via subgrid: the heading, description, and
+   table rows each share a height, so the tables line up despite descriptions of
+   different lengths. Each section must have exactly three direct children. */
+.aligned-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2rem;
+  align-items: start;
+}
+.aligned-cols > section {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .aligned-cols {
+    grid-template-columns: 1fr;
+  }
+  .aligned-cols > section {
+    grid-template-rows: none;
+    grid-row: auto;
+  }
+}
+
 /* On narrow viewports the sidebar becomes a sticky top bar; the nav links
    collapse behind a hamburger toggle and drop down vertically when opened. */
 @media (max-width: 720px) {

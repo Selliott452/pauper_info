@@ -33,6 +33,12 @@ data class ArchetypeDetail(
     // if no matchup data was scraped for this archetype.
     val overallWinrate: Int?,
     val overallMatches: Int?,
+    // Match win rates (percent) computed from your own recorded tournament and casual
+    // matches, with the number of matches behind each. Null when none recorded.
+    val tournamentWinrate: Int?,
+    val tournamentMatches: Int,
+    val casualWinrate: Int?,
+    val casualMatches: Int,
     val cards: List<ArchetypeCardWeight>,
     val matchups: List<ArchetypeMatchupWeight>,
 )
@@ -133,7 +139,64 @@ class ArchetypeQueryService(
 
         // Unknown archetype: no decks and no profile.
         if (deckCount == 0L && cards.isEmpty() && allMatchups.isEmpty()) return null
-        return ArchetypeDetail(name, deckCount, colorsFor(name), overall?.winrate, overall?.matches, cards, matchups)
+
+        val tournament = recordWinrate(name, tournamentRows(name))
+        val casual = recordWinrate(name, casualRows(name))
+        return ArchetypeDetail(
+            name, deckCount, colorsFor(name),
+            overall?.winrate, overall?.matches,
+            tournament.first, tournament.second,
+            casual.first, casual.second,
+            cards, matchups,
+        )
+    }
+
+    // Reported tournament matches involving [name] on either side, as rows of
+    // (p1 archetype, p2 archetype, p1 game wins, p2 game wins).
+    @Suppress("UNCHECKED_CAST")
+    private fun tournamentRows(name: String): List<Array<Any?>> =
+        entityManager.createNativeQuery(
+            """
+            SELECT p1.archetype, p2.archetype, m.player1_wins, m.player2_wins
+            FROM tournament.match m
+            JOIN tournament.player p1 ON p1.id = m.player1_id
+            JOIN tournament.player p2 ON p2.id = m.player2_id
+            WHERE m.reported = true AND m.player2_id IS NOT NULL
+              AND (lower(p1.archetype) = lower(:name) OR lower(p2.archetype) = lower(:name))
+            """.trimIndent()
+        ).setParameter("name", name).resultList as List<Array<Any?>>
+
+    // Casual matches involving [name] on either side, in the same row shape.
+    @Suppress("UNCHECKED_CAST")
+    private fun casualRows(name: String): List<Array<Any?>> =
+        entityManager.createNativeQuery(
+            """
+            SELECT player1_archetype, player2_archetype, player1_wins, player2_wins
+            FROM casual.match
+            WHERE lower(player1_archetype) = lower(:name) OR lower(player2_archetype) = lower(:name)
+            """.trimIndent()
+        ).setParameter("name", name).resultList as List<Array<Any?>>
+
+    // Match win rate (percent) and match count for [name] over the given rows.
+    // Mirrors (both sides the archetype) are skipped since they can't be attributed.
+    private fun recordWinrate(name: String, rows: List<Array<Any?>>): Pair<Int?, Int> {
+        var wins = 0
+        var matches = 0
+        for (r in rows) {
+            val a1 = (r[0] as String?)?.trim()
+            val a2 = (r[1] as String?)?.trim()
+            val p1Wins = (r[2] as Number).toInt()
+            val p2Wins = (r[3] as Number).toInt()
+            val mineIsP1 = a1.equals(name, ignoreCase = true)
+            val mineIsP2 = a2.equals(name, ignoreCase = true)
+            // Skip mirrors (both sides this archetype) - can't be attributed.
+            if (mineIsP1 && mineIsP2) continue
+            val mine = if (mineIsP1) p1Wins else p2Wins
+            val theirs = if (mineIsP1) p2Wins else p1Wins
+            matches++
+            if (mine > theirs) wins++
+        }
+        return if (matches == 0) null to 0 else Math.round(wins * 100.0 / matches).toInt() to matches
     }
 
     // Archetypes whose scraped profile includes the given card (most-central first).

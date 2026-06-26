@@ -53,8 +53,9 @@ export function ArchetypesPage() {
     setParams(next, { replace: true });
   }
 
-  // Sort column + direction also persist in the URL. Default: most decks first.
-  const sort = (params.get("sort") as SortKey) ?? "decks";
+  // Sort column + direction persist in the URL. Unset by default: the table shows
+  // in the API's natural order until a header is clicked.
+  const sort = params.get("sort") as SortKey | null;
   const dir = (params.get("dir") as SortDir) ?? "desc";
 
   // Click a header to sort by it; click the active one again to flip direction.
@@ -91,10 +92,10 @@ export function ArchetypesPage() {
 
   const term = search.trim().toLowerCase();
   const totalDecks = (data ?? []).reduce((sum, a) => sum + a.deckCount, 0);
-  const rows = (data ?? [])
+  const filtered = (data ?? [])
     .filter((a) => !term || a.name.toLowerCase().includes(term))
-    .filter((a) => colorMatches(a.colors, selectedNames, colorMatch === "exact", includeColorless))
-    .sort((a, b) => compareRows(a, b, sort, dir));
+    .filter((a) => colorMatches(a.colors, selectedNames, colorMatch === "exact", includeColorless));
+  const rows = sort ? [...filtered].sort((a, b) => compareRows(a, b, sort, dir)) : filtered;
 
   return (
     <main className="page">
