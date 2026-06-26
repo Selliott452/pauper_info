@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
 import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
+import { ArchetypeLink } from "./ArchetypeLink";
 import { pct, archetypeLabel } from "./format";
 import { fetchCompetitor, type OpponentRecord } from "./api";
 
@@ -59,7 +60,7 @@ export function CompetitorPage() {
             showGames
             rows={data.archetypesPlayed.map((a) => ({
               key: archetypeLabel(a),
-              label: archetypeLabel(a),
+              label: <ArchetypeLink archetype={a.archetype} />,
               wins: a.wins,
               losses: a.losses,
               draws: a.draws,
@@ -91,7 +92,7 @@ export function CompetitorPage() {
             showGames
             rows={data.vsArchetypes.map((a) => ({
               key: archetypeLabel(a),
-              label: archetypeLabel(a),
+              label: <ArchetypeLink archetype={a.archetype} />,
               wins: a.wins,
               losses: a.losses,
               draws: a.draws,

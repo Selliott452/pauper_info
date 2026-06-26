@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
 import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
+import { ArchetypeLink } from "./ArchetypeLink";
 import { pct, archetypeLabel } from "./format";
 import { fetchCasualPlayer } from "./api";
 
@@ -41,7 +42,7 @@ export function CasualPlayerPage() {
           <RecordTable
             heading="Archetypes played"
             firstCol="Archetype"
-            rows={data.archetypesPlayed.map((a) => ({ key: archetypeLabel(a), label: archetypeLabel(a), wins: a.wins, losses: a.losses, draws: a.draws }))}
+            rows={data.archetypesPlayed.map((a) => ({ key: archetypeLabel(a), label: <ArchetypeLink archetype={a.archetype} />, wins: a.wins, losses: a.losses, draws: a.draws }))}
           />
 
           <RecordTable
@@ -59,7 +60,7 @@ export function CasualPlayerPage() {
           <RecordTable
             heading="Record vs archetype"
             firstCol="Opponent archetype"
-            rows={data.vsArchetypes.map((a) => ({ key: archetypeLabel(a), label: archetypeLabel(a), wins: a.wins, losses: a.losses, draws: a.draws }))}
+            rows={data.vsArchetypes.map((a) => ({ key: archetypeLabel(a), label: <ArchetypeLink archetype={a.archetype} />, wins: a.wins, losses: a.losses, draws: a.draws }))}
           />
 
           {data.recentMatches.length > 0 && (
