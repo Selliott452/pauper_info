@@ -38,7 +38,13 @@ export function TournamentPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({ queryKey: ["tournament", id], queryFn: () => fetchTournament(id) });
+  // Poll so changes made in another window/device (timer pause/resume, results,
+  // pairings) show up here within a few seconds.
+  const { data, isLoading } = useQuery({
+    queryKey: ["tournament", id],
+    queryFn: () => fetchTournament(id),
+    refetchInterval: 3000,
+  });
   const { data: archetypeList } = useQuery({ queryKey: ["archetypes"], queryFn: fetchArchetypes, staleTime: Infinity });
   const archetypeNames = archetypeList?.map((a) => a.name) ?? [];
 
