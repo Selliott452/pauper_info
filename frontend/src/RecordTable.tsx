@@ -26,13 +26,25 @@ export function RecordTable({
   firstCol,
   rows,
   showGames = false,
+  emptyMessage,
 }: {
   heading: string;
   firstCol: string;
   rows: RecordRow[];
   showGames?: boolean;
+  // When set, an empty table renders the heading plus this message instead of
+  // collapsing to nothing.
+  emptyMessage?: string;
 }) {
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    if (!emptyMessage) return null;
+    return (
+      <>
+        <h2 style={{ margin: "1.5rem 0 0.5rem" }}>{heading}</h2>
+        <p style={{ color: "#666", margin: 0 }}>{emptyMessage}</p>
+      </>
+    );
+  }
   const hasActions = rows.some((r) => r.onView);
   return (
     <>

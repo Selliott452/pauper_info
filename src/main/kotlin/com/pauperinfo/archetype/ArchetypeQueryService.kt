@@ -24,6 +24,18 @@ data class ArchetypeMatchupWeight(val opponent: String, val winrate: Int, val ma
 // An archetype a card belongs to, with how central the card is to it (inclusion).
 data class CardArchetype(val archetype: String, val inclusion: Float)
 
+// One person's record playing this archetype, in tournaments or casual. playerId
+// links to their profile (competitor id for tournaments, casual player id for casual);
+// null when unknown. winRate is the match win rate (0..1) or null with no matches.
+data class ArchetypePlayerRecord(
+    val playerId: Int?,
+    val name: String,
+    val wins: Int,
+    val losses: Int,
+    val draws: Int,
+    val winRate: Double?,
+)
+
 data class ArchetypeDetail(
     val name: String,
     val deckCount: Long,
@@ -39,6 +51,10 @@ data class ArchetypeDetail(
     val tournamentMatches: Int,
     val casualWinrate: Int?,
     val casualMatches: Int,
+    // Who has played this archetype, with their record, in recorded tournaments and
+    // casual games. Most matches first.
+    val tournamentPlayers: List<ArchetypePlayerRecord>,
+    val casualPlayers: List<ArchetypePlayerRecord>,
     val cards: List<ArchetypeCardWeight>,
     val matchups: List<ArchetypeMatchupWeight>,
 )
@@ -147,8 +163,110 @@ class ArchetypeQueryService(
             overall?.winrate, overall?.matches,
             tournament.first, tournament.second,
             casual.first, casual.second,
+            tournamentPlayers(name), casualPlayers(name),
             cards, matchups,
         )
+    }
+
+    // Competitors who ran this archetype in recorded tournaments, with their match
+    // record while playing it (across every event where they registered it).
+    @Suppress("UNCHECKED_CAST")
+    private fun tournamentPlayers(name: String): List<ArchetypePlayerRecord> {
+        // player row id -> (competitor id, display name) for every registration of this archetype.
+        val players = entityManager.createNativeQuery(
+            """
+            SELECT p.id, p.competitor_id, p.name
+            FROM tournament.player p
+            WHERE lower(btrim(p.archetype)) = lower(:name)
+            """.trimIndent()
+        ).setParameter("name", name).resultList as List<Array<Any?>>
+        if (players.isEmpty()) return emptyList()
+
+        val playerIds = players.map { (it[0] as Number).toInt() }
+        // Group by competitor (falling back to name when there's no linked competitor).
+        data class Key(val competitorId: Int?, val name: String)
+        val keyByPlayerId = players.associate { row ->
+            (row[0] as Number).toInt() to Key((row[1] as Number?)?.toInt(), row[2] as String)
+        }
+
+        val matches = entityManager.createNativeQuery(
+            """
+            SELECT m.player1_id, m.player2_id, m.player1_wins, m.player2_wins
+            FROM tournament.match m
+            WHERE m.reported = true AND m.player2_id IS NOT NULL
+              AND (m.player1_id IN (:ids) OR m.player2_id IN (:ids))
+            """.trimIndent()
+        ).setParameter("ids", playerIds).resultList as List<Array<Any?>>
+
+        val agg = LinkedHashMap<Key, IntArray>() // [wins, losses, draws]
+        for (m in matches) {
+            val p1 = (m[0] as Number).toInt()
+            val p2 = (m[1] as Number).toInt()
+            val p1Wins = (m[2] as Number).toInt()
+            val p2Wins = (m[3] as Number).toInt()
+            // Attribute the result to whichever side(s) registered this archetype.
+            for (id in listOf(p1, p2)) {
+                val key = keyByPlayerId[id] ?: continue
+                val mine = if (id == p1) p1Wins else p2Wins
+                val theirs = if (id == p1) p2Wins else p1Wins
+                val b = agg.getOrPut(key) { IntArray(3) }
+                when {
+                    mine > theirs -> b[0]++
+                    mine < theirs -> b[1]++
+                    else -> b[2]++
+                }
+            }
+        }
+        return agg.entries
+            .map { (k, b) -> playerRecord(k.competitorId, k.name, b) }
+            .sortedByDescending { it.wins + it.losses + it.draws }
+    }
+
+    // Casual players who logged a match on this archetype, with their record on it.
+    @Suppress("UNCHECKED_CAST")
+    private fun casualPlayers(name: String): List<ArchetypePlayerRecord> {
+        val rows = entityManager.createNativeQuery(
+            """
+            SELECT player1_id, player2_id, player1_archetype, player2_archetype, player1_wins, player2_wins
+            FROM casual.match
+            WHERE lower(btrim(player1_archetype)) = lower(:name)
+               OR lower(btrim(player2_archetype)) = lower(:name)
+            """.trimIndent()
+        ).setParameter("name", name).resultList as List<Array<Any?>>
+        if (rows.isEmpty()) return emptyList()
+
+        val names = entityManager.createNativeQuery("SELECT id, name FROM casual.player")
+            .resultList as List<Array<Any?>>
+        val nameById = names.associate { (it[0] as Number).toInt() to it[1] as String }
+
+        val agg = LinkedHashMap<Int, IntArray>() // playerId -> [wins, losses, draws]
+        for (r in rows) {
+            val p1 = (r[0] as Number).toInt()
+            val p2 = (r[1] as Number).toInt()
+            val a1 = (r[2] as String?)?.trim()
+            val a2 = (r[3] as String?)?.trim()
+            val p1Wins = (r[4] as Number).toInt()
+            val p2Wins = (r[5] as Number).toInt()
+            if (a1.equals(name, ignoreCase = true)) tallyCasual(agg, p1, p1Wins, p2Wins)
+            if (a2.equals(name, ignoreCase = true)) tallyCasual(agg, p2, p2Wins, p1Wins)
+        }
+        return agg.entries
+            .map { (id, b) -> playerRecord(id, nameById[id] ?: "?", b) }
+            .sortedByDescending { it.wins + it.losses + it.draws }
+    }
+
+    private fun tallyCasual(agg: LinkedHashMap<Int, IntArray>, id: Int, mine: Int, theirs: Int) {
+        val b = agg.getOrPut(id) { IntArray(3) }
+        when {
+            mine > theirs -> b[0]++
+            mine < theirs -> b[1]++
+            else -> b[2]++
+        }
+    }
+
+    private fun playerRecord(playerId: Int?, name: String, b: IntArray): ArchetypePlayerRecord {
+        val total = b[0] + b[1] + b[2]
+        return ArchetypePlayerRecord(playerId, name, b[0], b[1], b[2], if (total == 0) null else Math.round(b[0] * 1000.0 / total) / 1000.0)
     }
 
     // Reported tournament matches involving [name] on either side, as rows of

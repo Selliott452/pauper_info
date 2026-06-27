@@ -194,6 +194,15 @@ export interface ArchetypeMatchupWeight {
   matches: number;
 }
 
+export interface ArchetypePlayerRecord {
+  playerId: number | null;
+  name: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number | null;
+}
+
 export interface ArchetypeDetail {
   name: string;
   deckCount: number;
@@ -204,6 +213,8 @@ export interface ArchetypeDetail {
   tournamentMatches: number;
   casualWinrate: number | null;
   casualMatches: number;
+  tournamentPlayers: ArchetypePlayerRecord[];
+  casualPlayers: ArchetypePlayerRecord[];
   cards: ArchetypeCardWeight[];
   matchups: ArchetypeMatchupWeight[];
 }

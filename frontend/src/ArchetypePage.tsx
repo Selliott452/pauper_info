@@ -7,6 +7,7 @@ import { CardLink } from "./CardLink";
 import { ColorIdentity } from "./ManaSymbols";
 import { SortableTh } from "./SortableTh";
 import { Bar } from "./Bar";
+import { RecordTable } from "./RecordTable";
 import { Loading } from "./QueryState";
 import { winrateColor } from "./winrate";
 
@@ -108,23 +109,54 @@ export function ArchetypePage() {
             </Link>
           </p>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", margin: "0 0 1.25rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", margin: "0 0 0.25rem" }}>
             <WinrateStat label="Global" winrate={data.overallWinrate} matches={data.overallMatches} />
             <WinrateStat label="Tournament" winrate={data.tournamentWinrate} matches={data.tournamentMatches} />
             <WinrateStat label="Casual" winrate={data.casualWinrate} matches={data.casualMatches} />
           </div>
 
+          {/* Pull up to counter the first table heading's top margin so the grids sit
+              close under the header stats. */}
+          <section style={{ marginTop: "-1rem", marginBottom: "1.75rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", alignItems: "flex-start" }}>
+              <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                <RecordTable
+                  heading="In tournaments"
+                  firstCol="Player"
+                  emptyMessage="No recorded tournament games yet."
+                  rows={data.tournamentPlayers.map((p) => ({
+                    key: p.playerId != null ? `c${p.playerId}` : p.name,
+                    label: p.playerId != null ? <Link to={`/players/${p.playerId}`}>{p.name}</Link> : p.name,
+                    wins: p.wins,
+                    losses: p.losses,
+                    draws: p.draws,
+                  }))}
+                />
+              </div>
+
+              <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                <RecordTable
+                  heading="In casual play"
+                  firstCol="Player"
+                  emptyMessage="No recorded casual games yet."
+                  rows={data.casualPlayers.map((p) => ({
+                    key: p.playerId != null ? `p${p.playerId}` : p.name,
+                    label: p.playerId != null ? <Link to={`/matches/players/${p.playerId}`}>{p.name}</Link> : p.name,
+                    wins: p.wins,
+                    losses: p.losses,
+                    draws: p.draws,
+                  }))}
+                />
+              </div>
+            </div>
+          </section>
+
           <div className="aligned-cols">
           {(data.matchups.length > 0 || data.tournamentMatches > 0 || data.casualMatches > 0) && (
             <section>
               <h2 style={{ marginBottom: "0.25rem", marginTop: 0 }}>Matchups</h2>
-              <p style={{ color: "#555", margin: 0 }}>
-                {matchupSource === "global"
-                  ? "Head-to-head win rates from mtgdecks, against the most-played archetypes."
-                  : `Head-to-head match win rates from your recorded ${matchupSource} matches.`}
-              </p>
 
-              <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem" }}>
+              <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
                 {(["global", "tournament", "casual"] as MatchupSource[]).map((s) => (
                   <button
                     key={s}
@@ -200,10 +232,6 @@ export function ArchetypePage() {
 
           <section>
           <h2 style={{ margin: "0 0 0.25rem" }}>How it's classified</h2>
-          <p style={{ color: "#555", margin: 0 }}>
-            The cards below are how often each appears in the
-            archetype's decks, the high-inclusion ones are its signature.
-          </p>
 
           {/* Empty placeholder occupying the matchups toolbar's subgrid row so the
               two tables stay aligned. */}
