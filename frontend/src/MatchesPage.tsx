@@ -62,7 +62,7 @@ export function MatchesPage() {
           Record match
         </button>
         {matches && matches.length > 0 && (
-          <button className="pill" onClick={() => downloadJson("casual-matches", matches)} style={{ marginLeft: "auto" }}>
+          <button className="pill push-end" onClick={() => downloadJson("casual-matches", matches)}>
             Export JSON
           </button>
         )}
@@ -225,9 +225,10 @@ function MatchRow({ match: m, onEdit, onRemove }: { match: CasualMatchView; onEd
         padding: "0.4rem 0.75rem",
         border: "1px solid #ececec",
         borderRadius: 8,
+        flexWrap: "wrap",
       }}
     >
-      <span style={{ flex: 1 }}>
+      <span style={{ flex: "1 1 200px" }}>
         {side(m.player1Name, m.player1Id, m.player1Archetype, m.player1DeckUrl)}{" "}
         <strong style={{ margin: "0 4px" }}>{score}</strong>{" "}
         {side(m.player2Name, m.player2Id, m.player2Archetype, m.player2DeckUrl)}

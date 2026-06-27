@@ -39,13 +39,13 @@ export function CompetitorPage() {
               <tbody>
                 {data.results.map((r) => (
                   <tr key={r.eventId}>
-                    <td>
+                    <td data-label="Tournament">
                       <Link to={`/tournaments/${r.eventId}`}>{r.eventName}</Link>
                     </td>
-                    <td className="center">
+                    <td className="center" data-label="Finish">
                       {r.rank} / {r.players}
                     </td>
-                    <td className="center">
+                    <td className="center" data-label="Record">
                       {r.wins}-{r.losses}-{r.draws}
                     </td>
                   </tr>

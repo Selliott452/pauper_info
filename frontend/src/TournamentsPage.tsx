@@ -64,7 +64,7 @@ export function TournamentsPage() {
       <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
         <h1>Tournaments</h1>
         {data && data.length > 0 && (
-          <button className="pill" disabled={exportAll.isPending} onClick={() => exportAll.mutate()} style={{ marginLeft: "auto" }}>
+          <button className="pill push-end" disabled={exportAll.isPending} onClick={() => exportAll.mutate()}>
             {exportAll.isPending ? "Exporting…" : "Export JSON"}
           </button>
         )}
@@ -139,13 +139,13 @@ export function TournamentsPage() {
           <tbody>
             {rows.map((t) => (
               <tr key={t.id}>
-                <td>
+                <td data-label="Name">
                   <Link to={`/tournaments/${t.id}`}>{t.name}</Link>
                 </td>
-                <td style={{ color: "#666" }}>{t.date ?? "-"}</td>
-                <td className="num">{t.playerCount}</td>
-                <td className="num">{t.currentRound}</td>
-                <td className="num">{t.status}</td>
+                <td data-label="Date" style={{ color: "#666" }}>{t.date ?? "-"}</td>
+                <td className="num" data-label="Players">{t.playerCount}</td>
+                <td className="num" data-label="Rounds">{t.currentRound}</td>
+                <td className="num" data-label="Status">{t.status}</td>
               </tr>
             ))}
           </tbody>

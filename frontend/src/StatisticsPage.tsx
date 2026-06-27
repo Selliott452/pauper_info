@@ -164,7 +164,7 @@ export function StatisticsPage() {
           <tbody>
             {rows.map((card) => (
               <tr key={card.id}>
-                <td>
+                <td data-label="Name">
                   <CardLink name={card.name} />
                   {card.colors.length > 0 && (
                     <span style={{ marginLeft: 6 }}>
@@ -172,9 +172,9 @@ export function StatisticsPage() {
                     </span>
                   )}
                 </td>
-                <td>{card.mainboardDeckCount.toLocaleString()}</td>
-                <td>{card.sideboardDeckCount.toLocaleString()}</td>
-                <td>{totalDecks ? `${((card.mainboardDeckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
+                <td data-label="Mainboard decks">{card.mainboardDeckCount.toLocaleString()}</td>
+                <td data-label="Sideboard decks">{card.sideboardDeckCount.toLocaleString()}</td>
+                <td data-label="% of decks">{totalDecks ? `${((card.mainboardDeckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
               </tr>
             ))}
           </tbody>

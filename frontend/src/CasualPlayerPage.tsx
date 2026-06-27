@@ -203,39 +203,26 @@ export function CasualPlayerPage() {
                 )}
               </div>
 
-              {/* One shared grid so columns size to their widest content across every
-                  row — scores line up regardless of archetype-name length, without
-                  the dead space two 1fr columns would leave. */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.1rem max-content max-content max-content 1fr",
-                  alignItems: "center",
-                  columnGap: "0.5rem",
-                  fontSize: "0.9rem",
-                }}
-              >
-                {visible.map(({ m, myWins, oppWins, oppId, oppName, myArch, oppArch, myDeck, oppDeck }, i) => {
+              {/* A shared grid on desktop (columns size to widest content so scores
+                  line up); collapses to one card per match on mobile - see .match-history. */}
+              <div className="match-history">
+                {visible.map(({ m, myWins, oppWins, oppId, oppName, myArch, oppArch, myDeck, oppDeck }) => {
                   const result = myWins > oppWins ? "W" : myWins < oppWins ? "L" : "D";
-                  const cell = { padding: "0.4rem 0", borderTop: i === 0 ? "none" : "1px solid #f0f0f0" };
                   return (
-                    <div key={m.id} style={{ display: "contents" }}>
+                    <div key={m.id} className="mh-row">
                       <strong
-                        style={{
-                          ...cell,
-                          textAlign: "center",
-                          color: result === "W" ? "#16a34a" : result === "L" ? "#dc2626" : "#999",
-                        }}
+                        className="mh-cell"
+                        style={{ textAlign: "center", color: result === "W" ? "#16a34a" : result === "L" ? "#dc2626" : "#999" }}
                       >
                         {result}
                       </strong>
-                      <span style={{ ...cell, textAlign: "left" }}>{side(data.name, null, myArch, myDeck)}</span>
-                      <strong style={{ ...cell, textAlign: "center", whiteSpace: "nowrap" }}>
+                      <span className="mh-cell mh-mine">{side(data.name, null, myArch, myDeck)}</span>
+                      <strong className="mh-cell mh-score">
                         {myWins}-{oppWins}
                         {m.draws ? `-${m.draws}` : ""}
                       </strong>
-                      <span style={cell}>{side(oppName, oppId, oppArch, oppDeck)}</span>
-                      <span style={{ ...cell, color: "#999", whiteSpace: "nowrap", textAlign: "right" }}>{m.date ?? ""}</span>
+                      <span className="mh-cell">{side(oppName, oppId, oppArch, oppDeck)}</span>
+                      <span className="mh-cell mh-date">{m.date ?? ""}</span>
                     </div>
                   );
                 })}

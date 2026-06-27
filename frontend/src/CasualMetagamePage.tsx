@@ -123,11 +123,11 @@ export function CasualMetagamePage() {
                 const games = r.wins + r.losses + r.draws;
                 return (
                   <tr key={r.archetype}>
-                    <td><ArchetypeLink archetype={r.archetype} /></td>
-                    <td className="num">{r.players.toLocaleString()}</td>
-                    <td className="num">{pct(r.share)}</td>
-                    <td className="num">{games === 0 ? "-" : `${r.wins}-${r.losses}-${r.draws}`}</td>
-                    <td className="num" style={{ color: r.winRate != null ? winrateColor(r.winRate * 100) : "#999" }}>
+                    <td data-label="Archetype"><ArchetypeLink archetype={r.archetype} /></td>
+                    <td className="num" data-label="Appearances">{r.players.toLocaleString()}</td>
+                    <td className="num" data-label="Field">{pct(r.share)}</td>
+                    <td className="num" data-label="Record">{games === 0 ? "-" : `${r.wins}-${r.losses}-${r.draws}`}</td>
+                    <td className="num" data-label="Win rate" style={{ color: r.winRate != null ? winrateColor(r.winRate * 100) : "#999" }}>
                       {r.winRate != null ? pct(r.winRate) : "-"}
                     </td>
                   </tr>

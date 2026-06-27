@@ -193,11 +193,11 @@ function DeckClassification({
             const isAssigned = s.archetype === assigned;
             return (
               <tr key={s.archetype}>
-                <td style={{ fontWeight: isAssigned ? 700 : 400 }}>
+                <td data-label="Archetype" style={{ fontWeight: isAssigned ? 700 : 400 }}>
                   <Link to={`/archetypes/${encodeURIComponent(s.archetype)}`}>{s.archetype}</Link>
                   {isAssigned && <span style={{ color: "#16a34a" }}> ✓</span>}
                 </td>
-                <td>
+                <td data-label="Score">
                   <Bar ratio={s.score / max} label={s.score.toFixed(2)} color={isAssigned ? "#16a34a" : "#9aa0a6"} />
                 </td>
               </tr>

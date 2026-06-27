@@ -100,18 +100,18 @@ export function CompetitorsPage() {
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
-                <td>
+                <td data-label="Player">
                   <Link to={`/players/${c.id}`}>{c.name}</Link>
                 </td>
-                <td className="num">{c.events}</td>
-                <td className="center">
+                <td className="num" data-label="Events">{c.events}</td>
+                <td className="center" data-label="Match record">
                   {c.wins}-{c.losses}-{c.draws}
                 </td>
-                <td className="center">
+                <td className="center" data-label="Game record">
                   {c.gameWins}-{c.gameLosses}-{c.gameDraws}
                 </td>
-                <td className="num">{pct(c.matchWinPct)}</td>
-                <td className="num">{pct(c.gameWinPct)}</td>
+                <td className="num" data-label="Match win%">{pct(c.matchWinPct)}</td>
+                <td className="num" data-label="Game win%">{pct(c.gameWinPct)}</td>
               </tr>
             ))}
           </tbody>

@@ -190,10 +190,10 @@ export function DecksPage() {
           <tbody>
             {data.map((deck) => (
               <tr key={deck.id}>
-                <td>
+                <td data-label="Deck">
                   <Link to={`/decks/${encodeURIComponent(deck.id)}`}>{deck.name ?? "(untitled deck)"}</Link>
                 </td>
-                <td>
+                <td data-label="Archetype">
                   {deck.archetype ? (
                     <>
                       <Link to={`/archetypes/${encodeURIComponent(deck.archetype)}`}>{deck.archetype}</Link>
@@ -203,8 +203,8 @@ export function DecksPage() {
                     "-"
                   )}
                 </td>
-                <td>{deck.author ?? "-"}</td>
-                <td>
+                <td data-label="Author">{deck.author ?? "-"}</td>
+                <td data-label="Colors">
                   <ColorSymbols colors={deck.colors} />
                 </td>
               </tr>

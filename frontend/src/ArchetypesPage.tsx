@@ -144,18 +144,18 @@ export function ArchetypesPage() {
             <tbody>
               {rows.map((a) => (
                 <tr key={a.name}>
-                  <td>
+                  <td data-label="Archetype">
                     <Link to={`/archetypes/${encodeURIComponent(a.name)}`}>{a.name}</Link>
                     <span style={{ marginLeft: 6 }}>
                       <ColorIdentity colors={a.colors} />
                     </span>
                   </td>
-                  <td className="num">{a.deckCount.toLocaleString()}</td>
-                  <td className="num">{totalDecks > 0 ? `${((a.deckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
-                  <td className="num" style={{ color: a.overallWinrate != null ? winrateColor(a.overallWinrate) : "#999" }}>
+                  <td className="num" data-label="Decks">{a.deckCount.toLocaleString()}</td>
+                  <td className="num" data-label="Deck share">{totalDecks > 0 ? `${((a.deckCount / totalDecks) * 100).toFixed(1)}%` : "-"}</td>
+                  <td className="num" data-label="Win rate" style={{ color: a.overallWinrate != null ? winrateColor(a.overallWinrate) : "#999" }}>
                     {a.overallWinrate != null ? `${a.overallWinrate}%` : "-"}
                   </td>
-                  <td className="num">{a.overallMatches != null ? a.overallMatches.toLocaleString() : "-"}</td>
+                  <td className="num" data-label="Games">{a.overallMatches != null ? a.overallMatches.toLocaleString() : "-"}</td>
                 </tr>
               ))}
             </tbody>

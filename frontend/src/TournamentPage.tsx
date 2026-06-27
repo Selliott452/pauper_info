@@ -224,9 +224,8 @@ export function TournamentPage() {
           </button>
         )}
         <button
-          className="pill"
+          className="pill push-end"
           onClick={() => downloadJson(`tournament-${slugify(data.name)}`, data)}
-          style={{ marginLeft: "auto" }}
         >
           Export JSON
         </button>
@@ -340,7 +339,7 @@ function RoundBlock({
 
   return (
     <div style={{ marginBottom: "1.5rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>Round {round.number}</h2>
         {!locked && (
           <button className="pill" onClick={confirmDelete.onClick}>
@@ -402,7 +401,7 @@ function RoundTimer({
   const color = expired ? "#dc2626" : running ? "#16a34a" : "#444";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginLeft: "auto" }}>
+    <div className="push-end" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
       <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, fontSize: "1.1rem", color, minWidth: "3.5ch" }}>
         {expired ? "Time!" : `${mm}:${ss}`}
       </span>
@@ -559,8 +558,8 @@ function StandingRow({
 
   return (
     <tr style={{ opacity: s.dropped ? 0.5 : 1 }}>
-      <td style={center}>{s.rank}</td>
-      <td style={td}>
+      <td style={center} data-label="Rank">{s.rank}</td>
+      <td style={td} data-label="Player">
         {s.competitorId != null ? <Link to={`/players/${s.competitorId}`}>{s.name}</Link> : s.name}
         {s.dropped && <span style={{ color: "#999", fontSize: "0.8rem" }}> (dropped)</span>}
         {(s.archetype || s.deckUrl) && (
@@ -574,14 +573,14 @@ function StandingRow({
           </div>
         )}
       </td>
-      <td style={{ ...center, fontWeight: 600 }}>{s.matchPoints}</td>
-      <td style={center}>
+      <td style={{ ...center, fontWeight: 600 }} data-label="Points">{s.matchPoints}</td>
+      <td style={center} data-label="Record">
         {s.wins}-{s.losses}-{s.draws}
       </td>
-      <td style={center}>{pct(s.omwp)}</td>
-      <td style={center}>{pct(s.gwp)}</td>
-      <td style={center}>{pct(s.ogwp)}</td>
-      <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
+      <td style={center} data-label="Opp. win %">{pct(s.omwp)}</td>
+      <td style={center} data-label="Game win %">{pct(s.gwp)}</td>
+      <td style={center} data-label="Opp. game win %">{pct(s.ogwp)}</td>
+      <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }} data-label="">
         <button className="pill" onClick={() => setEditing(true)}>
           Deck
         </button>

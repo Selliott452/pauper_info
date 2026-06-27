@@ -198,10 +198,10 @@ export function CardPage() {
             <tbody>
               {archetypes.map((a) => (
                 <tr key={a.archetype}>
-                  <td>
+                  <td data-label="Archetype">
                     <Link to={`/archetypes/${encodeURIComponent(a.archetype)}`}>{a.archetype}</Link>
                   </td>
-                  <td>
+                  <td data-label="Inclusion">
                     <Bar ratio={a.inclusion} label={`${Math.round(a.inclusion * 100)}%`} />
                   </td>
                 </tr>
@@ -231,7 +231,7 @@ export function CardPage() {
               <tbody>
                 {cooccur.cooccurrences.map((c) => (
                   <tr key={c.id}>
-                    <td>
+                    <td data-label="Card">
                       <CardLink name={c.name} />
                       {c.colors.length > 0 && (
                         <span style={{ marginLeft: 6 }}>
@@ -239,8 +239,8 @@ export function CardPage() {
                         </span>
                       )}
                     </td>
-                    <td className="num">{c.deckCount.toLocaleString()}</td>
-                    <td className="num">
+                    <td className="num" data-label="Decks">{c.deckCount.toLocaleString()}</td>
+                    <td className="num" data-label="% of decks">
                       {cooccur.deckCount > 0 ? `${((c.deckCount / cooccur.deckCount) * 100).toFixed(1)}%` : "-"}
                     </td>
                   </tr>

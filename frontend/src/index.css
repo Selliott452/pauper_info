@@ -235,14 +235,37 @@ a:hover {
     font-size: 1.5rem;
   }
 
-  /* Let wide data tables scroll horizontally instead of overflowing the page
-     (and forcing the whole viewport to scroll sideways). */
-  .data-table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-  }
+}
+
+/* Casual match history grid (desktop): columns size to widest content so scores
+   line up across rows. Rows use display:contents so cells join the shared grid. */
+.match-history {
+  display: grid;
+  grid-template-columns: 1.1rem max-content max-content max-content 1fr;
+  align-items: center;
+  column-gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.match-history .mh-row {
+  display: contents;
+}
+.match-history .mh-cell {
+  padding: 0.4rem 0;
+}
+.match-history .mh-row:not(:first-child) .mh-cell {
+  border-top: 1px solid #f0f0f0;
+}
+.match-history .mh-mine {
+  text-align: left;
+}
+.match-history .mh-score {
+  text-align: center;
+  white-space: nowrap;
+}
+.match-history .mh-date {
+  color: #999;
+  white-space: nowrap;
+  text-align: right;
 }
 
 table {
@@ -258,6 +281,12 @@ th:hover {
   max-width: 1000px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+/* Pushes a flex item to the far end of its row (e.g. an Export button). Reset on
+   mobile (see the mobile media query) so it just wraps instead of overflowing. */
+.push-end {
+  margin-left: auto;
 }
 
 .muted {
@@ -554,4 +583,117 @@ th:hover {
   border-color: var(--accent-line) !important;
   background: var(--accent-soft) !important;
   box-shadow: var(--shadow);
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile: turn every data table into one card per row, and the casual match
+   history into stacked cards. Placed at the end of the file so these overrides
+   win over the base table rules defined above. */
+@media (max-width: 720px) {
+  /* Tighten page chrome (defined here so it wins over the base .page padding). */
+  .page {
+    padding: 1rem;
+  }
+
+  /* On mobile, don't right-align toolbar items - let them wrap normally so they
+     never push content past the viewport edge. */
+  .push-end {
+    margin-left: 0;
+  }
+
+  /* Stack data tables into one card per row so every value stays on screen and
+     readable without horizontal scrolling. The header is hidden; each <td> shows
+     its column name via a data-label attribute (set in the table components). */
+  .data-table {
+    display: block;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .data-table thead {
+    display: none;
+  }
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .data-table tr {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    padding: 0.15rem 0.85rem;
+    background: var(--surface);
+  }
+  .data-table tbody tr:hover {
+    background: var(--surface);
+  }
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    text-align: right;
+    border: none;
+    border-bottom: none;
+    padding: 0.45rem 0;
+  }
+  .data-table tbody tr td + td {
+    border-top: 1px solid var(--line);
+  }
+  /* The column name, pulled from data-label. */
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap;
+  }
+  /* Cells with an empty label (e.g. action buttons) don't reserve label space. */
+  .data-table td[data-label=""]::before {
+    content: none;
+  }
+  .data-table .num,
+  .data-table .center {
+    text-align: right;
+  }
+  /* Bar cells (inclusion / win-rate) read better stacked under their label. */
+  .data-table td:has(.bar-cell) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+  .data-table .bar-cell {
+    width: 100%;
+  }
+
+  /* Casual match history: one wrapped card per match instead of the wide grid. */
+  .match-history {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .match-history .mh-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+  }
+  .match-history .mh-row:not(:first-child) .mh-cell {
+    border-top: none;
+  }
+  .match-history .mh-cell {
+    padding: 0;
+  }
+  .match-history .mh-date {
+    width: 100%;
+    text-align: left;
+  }
 }

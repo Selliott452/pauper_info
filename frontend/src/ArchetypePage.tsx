@@ -196,13 +196,13 @@ export function ArchetypePage() {
                             </tr>
                           )}
                           <tr>
-                            <td>
+                            <td data-label="Opponent">
                               <Link to={`/archetypes/${encodeURIComponent(m.opponent)}`}>{m.opponent}</Link>
                             </td>
-                            <td>
+                            <td data-label="Win rate">
                               <Bar ratio={m.winrate / 100} label={`${m.winrate}%`} color={winrateColor(m.winrate)} />
                             </td>
-                            <td className="num" style={{ color: "#555" }}>
+                            <td className="num" data-label="Matches" style={{ color: "#555" }}>
                               {m.matches.toLocaleString()}
                             </td>
                           </tr>
@@ -248,10 +248,10 @@ export function ArchetypePage() {
             <tbody>
               {displayCards.map((c) => (
                 <tr key={c.name}>
-                  <td>
+                  <td data-label="Card">
                     <CardLink name={c.name} />
                   </td>
-                  <td>
+                  <td data-label="Inclusion">
                     <Bar ratio={c.inclusion} label={`${Math.round(c.inclusion * 100)}%`} />
                   </td>
                 </tr>

@@ -60,14 +60,14 @@ export function CasualPlayersPage() {
           <tbody>
             {data.map((p) => (
               <tr key={p.id}>
-                <td>
+                <td data-label="Player">
                   <Link to={`/matches/players/${p.id}`}>{p.name}</Link>
                 </td>
-                <td className="center">{p.matches}</td>
-                <td className="center">
+                <td className="center" data-label="Matches">{p.matches}</td>
+                <td className="center" data-label="Record">
                   {p.wins}-{p.losses}-{p.draws}
                 </td>
-                <td className="num">{p.matches > 0 ? pct(p.matchWinPct) : "-"}</td>
+                <td className="num" data-label="Win%">{p.matches > 0 ? pct(p.matchWinPct) : "-"}</td>
               </tr>
             ))}
           </tbody>

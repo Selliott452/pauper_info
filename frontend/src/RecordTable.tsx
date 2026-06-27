@@ -62,18 +62,18 @@ export function RecordTable({
         <tbody>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td>{r.label}</td>
-              <td className="center">
+              <td data-label={firstCol}>{r.label}</td>
+              <td className="center" data-label={showGames ? "Match record" : "Record"}>
                 {r.wins}-{r.losses}-{r.draws}
               </td>
               {showGames && (
-                <td className="center">
+                <td className="center" data-label="Game record">
                   {r.gameWins ?? 0}-{r.gameLosses ?? 0}-{r.gameDraws ?? 0}
                 </td>
               )}
-              <td className="num">{recordWinRate(r.wins, r.losses, r.draws)}</td>
+              <td className="num" data-label="Win%">{recordWinRate(r.wins, r.losses, r.draws)}</td>
               {hasActions && (
-                <td className="num">
+                <td className="num" data-label="">
                   {r.onView && (
                     <button
                       onClick={r.onView}
