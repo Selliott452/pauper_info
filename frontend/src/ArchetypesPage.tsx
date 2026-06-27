@@ -4,6 +4,7 @@ import { fetchArchetypes, type ArchetypeSummary } from "./api";
 import { ColorIdentity } from "./ManaSymbols";
 import { ColorFilter } from "./ColorFilter";
 import { SortableTh } from "./SortableTh";
+import { SearchInput } from "./SearchInput";
 import { Loading, ErrorText } from "./QueryState";
 import { COLORS } from "./colors";
 import { winrateColor } from "./winrate";
@@ -90,6 +91,18 @@ export function ArchetypesPage() {
     setParams(next, { replace: true });
   }
 
+  // Number of active filters (search counts as one; colors as one group), used
+  // to label and gate the "Clear all" control.
+  const activeFilters = (search ? 1 : 0) + (selectedCodes.length ? 1 : 0);
+
+  function clearFilters() {
+    const next = new URLSearchParams(params);
+    next.delete("q");
+    next.delete("colors");
+    next.delete("colorMatch");
+    setParams(next, { replace: true });
+  }
+
   const term = search.trim().toLowerCase();
   const totalDecks = (data ?? []).reduce((sum, a) => sum + a.deckCount, 0);
   const filtered = (data ?? [])
@@ -104,15 +117,19 @@ export function ArchetypesPage() {
 
       <div className="filter-panel">
         <div className="filter-row">
-          <span className="filter-label">Search</span>
-          <input
-            type="text"
-            className="text-input"
+          <SearchInput
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
             placeholder="Search archetype…"
-            style={{ width: 280 }}
+            width={280}
+            ariaLabel="Search archetypes"
           />
+          {activeFilters > 0 && (
+            <button className="filter-clear" onClick={clearFilters}>
+              <span className="filter-clear-count">{activeFilters}</span>
+              Clear all
+            </button>
+          )}
         </div>
 
         <ColorFilter

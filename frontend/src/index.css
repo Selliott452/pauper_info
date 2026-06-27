@@ -553,6 +553,94 @@ th:hover {
   box-shadow: 0 0 0 2px rgba(154, 91, 30, 0.18);
 }
 
+/* Search field: leading magnifier icon + trailing clear button. */
+.search-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 0.6rem;
+  width: 15px;
+  height: 15px;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.search-input-field {
+  width: 100%;
+  padding: 0.4rem 1.9rem 0.4rem 2rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.search-input-field:focus {
+  outline: none;
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px rgba(154, 91, 30, 0.18);
+}
+
+.search-input-clear {
+  position: absolute;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.search-input-clear:hover {
+  background: var(--line-strong);
+  color: var(--ink);
+}
+
+/* "Clear all" reset shown when filters are active, with a live count. */
+.filter-clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: none;
+  color: var(--accent-ink);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.filter-clear:hover {
+  text-decoration: underline;
+}
+
+.filter-clear-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .pill {
   border: 1px solid var(--line-strong);
   border-radius: 999px;

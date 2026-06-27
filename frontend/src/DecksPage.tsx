@@ -11,6 +11,7 @@ import {
 import { ColorSymbols } from "./ManaSymbols";
 import { MultiCombobox } from "./ComboBox";
 import { ColorFilter } from "./ColorFilter";
+import { SearchInput } from "./SearchInput";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { Loading, ErrorText } from "./QueryState";
 
@@ -97,27 +98,59 @@ export function DecksPage() {
     setParam("confidence", next.join(","));
   }
 
+  // Count active filters (each group counts once) to label and gate "Clear all".
+  const activeFilters =
+    (name ? 1 : 0) +
+    (author ? 1 : 0) +
+    (colors.length ? 1 : 0) +
+    (archetypes.length ? 1 : 0) +
+    (confidences.length ? 1 : 0) +
+    (mainboardCards.length ? 1 : 0) +
+    (sideboardCards.length ? 1 : 0);
+
+  function clearFilters() {
+    const next = new URLSearchParams(params);
+    for (const key of [
+      "name",
+      "author",
+      "colors",
+      "colorMatch",
+      "archetypes",
+      "confidence",
+      "mainboardCards",
+      "sideboardCards",
+    ]) {
+      next.delete(key);
+    }
+    setParams(next, { replace: true });
+  }
+
   return (
     <main className="page">
       <h1>Decks</h1>
 
       <div className="filter-panel">
         <div className="filter-row">
-          <span className="filter-label">Search</span>
-          <input
-            type="text"
-            className="text-input"
+          <SearchInput
             value={name}
-            onChange={(e) => setParam("name", e.target.value)}
+            onChange={(v) => setParam("name", v)}
             placeholder="Deck name…"
+            width={220}
+            ariaLabel="Search deck name"
           />
-          <input
-            type="text"
-            className="text-input"
+          <SearchInput
             value={author}
-            onChange={(e) => setParam("author", e.target.value)}
+            onChange={(v) => setParam("author", v)}
             placeholder="Author…"
+            width={200}
+            ariaLabel="Search author"
           />
+          {activeFilters > 0 && (
+            <button className="filter-clear" onClick={clearFilters}>
+              <span className="filter-clear-count">{activeFilters}</span>
+              Clear all
+            </button>
+          )}
         </div>
 
         <ColorFilter
