@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { fetchDeck, fetchDeckRank, type DeckCardEntry, type DeckDetail } from "./api";
@@ -81,6 +82,38 @@ function ManaCurve({ entries }: { entries: DeckCardEntry[] }) {
 
 function titleCase(s: string): string {
   return s.charAt(0) + s.slice(1).toLowerCase();
+}
+
+// Builds a plain-text decklist in the format Cockatrice's "Load deck from
+// clipboard" understands: mainboard lines "4 Card Name", sideboard lines
+// prefixed with "SB: ".
+function buildCockatriceText(deck: DeckDetail): string {
+  const main = deck.mainboard.map((e) => `${e.quantity} ${e.name}`);
+  const side = deck.sideboard.map((e) => `SB: ${e.quantity} ${e.name}`);
+  return [...main, ...side].join("\n");
+}
+
+// A link that copies the decklist to the clipboard for Cockatrice's
+// "Load deck from clipboard" import, with brief confirmation feedback.
+function CockatriceCopy({ deck }: { deck: DeckDetail }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <a
+      href="#"
+      onClick={async (e) => {
+        e.preventDefault();
+        try {
+          await navigator.clipboard.writeText(buildCockatriceText(deck));
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          // Clipboard unavailable (e.g. insecure context); leave label unchanged.
+        }
+      }}
+    >
+      {copied ? "Copied for Cockatrice ✓" : "Copy for Cockatrice ⧉"}
+    </a>
+  );
 }
 
 function Breakdown({ entries }: { entries: DeckCardEntry[] }) {
@@ -223,6 +256,8 @@ export function DeckView({ deck, showClassification = true }: { deck: DeckDetail
         <a href={`https://moxfield.com/decks/${deck.id}`} target="_blank" rel="noreferrer">
           View on Moxfield ↗
         </a>
+        {" · "}
+        <CockatriceCopy deck={deck} />
       </p>
 
       <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", marginTop: "1rem" }}>
