@@ -4,6 +4,7 @@ import com.pauperinfo.archetype.ArchetypeClassificationService
 import com.pauperinfo.archetype.ArchetypeDetail
 import com.pauperinfo.archetype.ArchetypeQueryService
 import com.pauperinfo.archetype.ArchetypeScore
+import com.pauperinfo.archetype.ArchetypeMatchupWeight
 import com.pauperinfo.archetype.ArchetypeScrapeService
 import com.pauperinfo.archetype.ArchetypeSummary
 import com.pauperinfo.archetype.CardArchetype
@@ -31,6 +32,13 @@ class ArchetypeController(
         val detail = archetypeQueryService.get(name)
         return if (detail != null) ResponseEntity.ok(detail) else ResponseEntity.notFound().build()
     }
+
+    // Per-opponent matchups for an archetype from one source (global/tournament/casual).
+    @GetMapping("/{name}/matchups")
+    fun matchups(
+        @PathVariable name: String,
+        @RequestParam(defaultValue = "global") source: String,
+    ): List<ArchetypeMatchupWeight> = archetypeQueryService.matchupsFor(name, source)
 
     // Archetypes a given card belongs to (for the card detail page).
     @GetMapping("/by-card/{name}")

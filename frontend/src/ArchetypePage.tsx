@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { fetchArchetype } from "./api";
+import { fetchArchetype, fetchArchetypeMatchups, type MatchupSource } from "./api";
 import { BackLink } from "./BackLink";
 import { CardLink } from "./CardLink";
 import { ColorIdentity } from "./ManaSymbols";
@@ -42,8 +42,16 @@ export function ArchetypePage() {
   }
 
   const [showAllMatchups, setShowAllMatchups] = useState(false);
+  const [matchupSource, setMatchupSource] = useState<MatchupSource>("global");
 
-  const allMatchups = data?.matchups ?? [];
+  // Matchups are fetched per source so the user can switch between the scraped
+  // global figures and their own tournament/casual records.
+  const { data: matchupData } = useQuery({
+    queryKey: ["archetype-matchups", name, matchupSource],
+    queryFn: () => fetchArchetypeMatchups(name, matchupSource),
+    enabled: !!data,
+  });
+  const allMatchups = matchupData ?? [];
   const matchups = matchupSort
     ? [...allMatchups].sort((a, b) => {
         const s = matchupSort.dir === "asc" ? 1 : -1;
@@ -107,61 +115,84 @@ export function ArchetypePage() {
           </div>
 
           <div className="aligned-cols">
-          {data.matchups.length > 0 && (
+          {(data.matchups.length > 0 || data.tournamentMatches > 0 || data.casualMatches > 0) && (
             <section>
               <h2 style={{ marginBottom: "0.25rem", marginTop: 0 }}>Matchups</h2>
               <p style={{ color: "#555", margin: 0 }}>
-                Head-to-head win rates from mtgdecks, against the most-played
-                archetypes.
+                {matchupSource === "global"
+                  ? "Head-to-head win rates from mtgdecks, against the most-played archetypes."
+                  : `Head-to-head match win rates from your recorded ${matchupSource} matches.`}
               </p>
 
-              <div>
-              <table className="data-table" style={{ maxWidth: 520 }}>
-                <thead>
-                  <tr>
-                    <SortableTh label="Opponent" active={matchupSort?.col === "opponent"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("opponent")} />
-                    <SortableTh label="Win rate" width={220} active={matchupSort?.col === "winrate"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("winrate")} />
-                    <SortableTh label="Matches" align="right" active={matchupSort?.col === "matches"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("matches")} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayMatchups.map((m, i) => (
-                    <Fragment key={m.opponent}>
-                      {i === splitIndex && (
-                        <tr>
-                          <td colSpan={3} style={{ textAlign: "center", color: "#999", fontSize: "0.85rem", padding: "0.3rem" }}>
-                            ⋯ {allMatchups.length - 10} more ⋯
-                          </td>
-                        </tr>
-                      )}
-                      <tr>
-                        <td>
-                          <Link to={`/archetypes/${encodeURIComponent(m.opponent)}`}>{m.opponent}</Link>
-                        </td>
-                        <td>
-                          <Bar ratio={m.winrate / 100} label={`${m.winrate}%`} color={winrateColor(m.winrate)} />
-                        </td>
-                        <td className="num" style={{ color: "#555" }}>
-                          {m.matches.toLocaleString()}
-                        </td>
-                      </tr>
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-
-              {collapsedMatchups ? (
-                <button className="pill" style={{ marginTop: "0.5rem" }} onClick={() => setShowAllMatchups(true)}>
-                  Show all {allMatchups.length} matchups
-                </button>
-              ) : (
-                showAllMatchups &&
-                allMatchups.length > 10 &&
-                !matchupSort && (
-                  <button className="pill" style={{ marginTop: "0.5rem" }} onClick={() => setShowAllMatchups(false)}>
-                    Show less
+              <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem" }}>
+                {(["global", "tournament", "casual"] as MatchupSource[]).map((s) => (
+                  <button
+                    key={s}
+                    className={`pill ${matchupSource === s ? "active" : ""}`}
+                    style={{ textTransform: "capitalize" }}
+                    onClick={() => {
+                      setMatchupSource(s);
+                      setShowAllMatchups(false);
+                    }}
+                  >
+                    {s}
                   </button>
-                )
+                ))}
+              </div>
+
+              <div style={{ marginTop: "0.6rem" }}>
+              {allMatchups.length === 0 ? (
+                <p style={{ color: "#666" }}>No {matchupSource} matchups recorded.</p>
+              ) : (
+                <>
+                  <table className="data-table" style={{ maxWidth: 520 }}>
+                    <thead>
+                      <tr>
+                        <SortableTh label="Opponent" active={matchupSort?.col === "opponent"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("opponent")} />
+                        <SortableTh label="Win rate" width={220} active={matchupSort?.col === "winrate"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("winrate")} />
+                        <SortableTh label="Matches" align="right" active={matchupSort?.col === "matches"} dir={matchupSort?.dir ?? "desc"} onClick={() => sortMatchups("matches")} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayMatchups.map((m, i) => (
+                        <Fragment key={m.opponent}>
+                          {i === splitIndex && (
+                            <tr>
+                              <td colSpan={3} style={{ textAlign: "center", color: "#999", fontSize: "0.85rem", padding: "0.3rem" }}>
+                                ⋯ {allMatchups.length - 10} more ⋯
+                              </td>
+                            </tr>
+                          )}
+                          <tr>
+                            <td>
+                              <Link to={`/archetypes/${encodeURIComponent(m.opponent)}`}>{m.opponent}</Link>
+                            </td>
+                            <td>
+                              <Bar ratio={m.winrate / 100} label={`${m.winrate}%`} color={winrateColor(m.winrate)} />
+                            </td>
+                            <td className="num" style={{ color: "#555" }}>
+                              {m.matches.toLocaleString()}
+                            </td>
+                          </tr>
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {collapsedMatchups ? (
+                    <button className="pill" style={{ marginTop: "0.5rem" }} onClick={() => setShowAllMatchups(true)}>
+                      Show all {allMatchups.length} matchups
+                    </button>
+                  ) : (
+                    showAllMatchups &&
+                    allMatchups.length > 10 &&
+                    !matchupSort && (
+                      <button className="pill" style={{ marginTop: "0.5rem" }} onClick={() => setShowAllMatchups(false)}>
+                        Show less
+                      </button>
+                    )
+                  )}
+                </>
               )}
               </div>
             </section>
@@ -170,12 +201,15 @@ export function ArchetypePage() {
           <section>
           <h2 style={{ margin: "0 0 0.25rem" }}>How it's classified</h2>
           <p style={{ color: "#555", margin: 0 }}>
-            A deck is scored against this archetype's card profile (inclusion rate ×
-            distinctiveness). The cards below are how often each appears in the
+            The cards below are how often each appears in the
             archetype's decks, the high-inclusion ones are its signature.
           </p>
 
-          <div>
+          {/* Empty placeholder occupying the matchups toolbar's subgrid row so the
+              two tables stay aligned. */}
+          <div className="toolbar-placeholder" aria-hidden="true" />
+
+          <div style={{ marginTop: "0.6rem" }}>
           <table className="data-table" style={{ maxWidth: 520 }}>
             <thead>
               <tr>

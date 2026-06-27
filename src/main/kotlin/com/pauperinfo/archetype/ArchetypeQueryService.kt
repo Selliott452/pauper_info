@@ -199,6 +199,45 @@ class ArchetypeQueryService(
         return if (matches == 0) null to 0 else Math.round(wins * 100.0 / matches).toInt() to matches
     }
 
+    // Per-opponent matchups for an archetype from a given source: "global" is the
+    // scraped mtgdecks figures; "tournament"/"casual" are computed from your own
+    // recorded matches. Sorted by sample size (most matches first).
+    fun matchupsFor(name: String, source: String): List<ArchetypeMatchupWeight> = when (source) {
+        "global" -> {
+            val all = archetypeMatchupRepository.findByArchetypeOrderByMatchesDesc(name)
+            all.filter { it.opponent != ArchetypeScrapeService.OVERALL }
+                .map { ArchetypeMatchupWeight(it.opponent, it.winrate, it.matches) }
+        }
+        "tournament" -> opponentMatchups(name, tournamentRows(name))
+        "casual" -> opponentMatchups(name, casualRows(name))
+        else -> emptyList()
+    }
+
+    // Groups recorded match rows by opponent archetype, tallying [name]'s match win
+    // rate vs each. Mirrors and rows with no opponent archetype are dropped.
+    private fun opponentMatchups(name: String, rows: List<Array<Any?>>): List<ArchetypeMatchupWeight> {
+        // opponent -> [wins, matches]
+        val agg = LinkedHashMap<String, IntArray>()
+        for (r in rows) {
+            val a1 = (r[0] as String?)?.trim()
+            val a2 = (r[1] as String?)?.trim()
+            val p1Wins = (r[2] as Number).toInt()
+            val p2Wins = (r[3] as Number).toInt()
+            val mineIsP1 = a1.equals(name, ignoreCase = true)
+            val opponent = (if (mineIsP1) a2 else a1)?.takeIf { it.isNotEmpty() } ?: continue
+            // Skip mirrors (opponent is the same archetype).
+            if (opponent.equals(name, ignoreCase = true)) continue
+            val mine = if (mineIsP1) p1Wins else p2Wins
+            val theirs = if (mineIsP1) p2Wins else p1Wins
+            val b = agg.getOrPut(opponent) { IntArray(2) }
+            b[1]++
+            if (mine > theirs) b[0]++
+        }
+        return agg.entries
+            .map { (opponent, b) -> ArchetypeMatchupWeight(opponent, Math.round(b[0] * 100.0 / b[1]).toInt(), b[1]) }
+            .sortedByDescending { it.matches }
+    }
+
     // Archetypes whose scraped profile includes the given card (most-central first).
     fun archetypesForCard(cardName: String): List<CardArchetype> =
         archetypeCardRepository.findByCardNameOrderByInclusionDesc(cardName)

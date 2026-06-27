@@ -221,6 +221,13 @@ export function fetchArchetype(name: string): Promise<ArchetypeDetail | null> {
   return apiGetOrNull(`/api/archetypes/${encodeURIComponent(name)}`);
 }
 
+export type MatchupSource = "global" | "tournament" | "casual";
+
+// Per-opponent matchups for an archetype from one data source.
+export function fetchArchetypeMatchups(name: string, source: MatchupSource): Promise<ArchetypeMatchupWeight[]> {
+  return apiGet(`/api/archetypes/${encodeURIComponent(name)}/matchups?source=${source}`);
+}
+
 // Ranked archetype scores for a deck (how it was classified + alternatives).
 export function fetchDeckRank(deckId: string, limit = 6): Promise<ArchetypeScore[]> {
   return apiGet(`/api/archetypes/rank/${encodeURIComponent(deckId)}?limit=${limit}`);

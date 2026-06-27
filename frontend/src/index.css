@@ -159,9 +159,10 @@ a:hover {
 }
 
 /* Two side-by-side sections (e.g. archetype Matchups + classification) whose
-   inner rows align across columns via subgrid: the heading, description, and
-   table rows each share a height, so the tables line up despite descriptions of
-   different lengths. Each section must have exactly three direct children. */
+   inner rows align across columns via subgrid: the heading, description, toolbar,
+   and table rows each share a height, so the tables line up despite descriptions
+   of different lengths. Each section must have exactly four direct children (use
+   an empty placeholder for the toolbar row when a section has no toolbar). */
 .aligned-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -171,7 +172,7 @@ a:hover {
 .aligned-cols > section {
   display: grid;
   grid-template-rows: subgrid;
-  grid-row: span 3;
+  grid-row: span 4;
   min-width: 0;
 }
 @media (max-width: 720px) {
@@ -181,6 +182,10 @@ a:hover {
   .aligned-cols > section {
     grid-template-rows: none;
     grid-row: auto;
+  }
+  /* The toolbar-row placeholder collapses when stacked. */
+  .aligned-cols > section > .toolbar-placeholder {
+    display: none;
   }
 }
 
