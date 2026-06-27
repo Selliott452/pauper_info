@@ -565,6 +565,14 @@ th:hover {
   transition: all 0.1s;
 }
 
+/* Links styled as pills need the anchor defaults reset so they match buttons. */
+a.pill {
+  display: inline-block;
+  text-decoration: none;
+  line-height: normal;
+  vertical-align: middle;
+}
+
 .pill:hover {
   border-color: var(--accent-line);
 }
@@ -696,4 +704,128 @@ th:hover {
     width: 100%;
     text-align: left;
   }
+}
+
+/* Full-screen round timer for players to keep open on their phone. Big clock,
+   minimal chrome, large pairing list. Lives outside the app shell. */
+.round-timer-page {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 1rem 2rem;
+  box-sizing: border-box;
+}
+.round-timer-header {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.round-timer-back {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.round-timer-back:hover {
+  color: var(--accent-ink);
+}
+.round-timer-round {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.round-timer-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem 0;
+  text-align: center;
+}
+.round-timer-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  font-size: clamp(4.5rem, 28vw, 12rem);
+  color: #444;
+}
+.round-timer-clock.running .round-timer-time {
+  color: #16a34a;
+}
+.round-timer-clock.paused .round-timer-time {
+  color: var(--accent-ink);
+}
+.round-timer-clock.expired .round-timer-time {
+  color: #dc2626;
+}
+.round-timer-status {
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.round-timer-pairings {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.round-timer-pairing {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 0.7rem 0.9rem;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.round-timer-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.round-timer-arrow {
+  font-size: 1.6rem;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--accent-ink);
+  padding: 0 0.3rem;
+  user-select: none;
+}
+.round-timer-arrow.disabled {
+  color: var(--line-strong);
+  pointer-events: none;
+}
+.round-timer-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.round-timer-standings {
+  width: 100%;
+  max-width: 640px;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.round-timer-standings th,
+.round-timer-standings td {
+  padding: 0.45rem 0.6rem;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+.round-timer-standings th {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.round-timer-dropped {
+  color: var(--faint);
+  font-size: 0.8rem;
 }

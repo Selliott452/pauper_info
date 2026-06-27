@@ -288,6 +288,7 @@ export function TournamentPage() {
         <RoundBlock
           key={round.id}
           round={round}
+          tournamentId={id}
           locked={data.status === "COMPLETE"}
           roundMinutes={data.roundMinutes}
           players={data.standings.map((s) => ({ id: s.playerId, name: s.name }))}
@@ -304,6 +305,7 @@ export function TournamentPage() {
 
 function RoundBlock({
   round,
+  tournamentId,
   locked,
   roundMinutes,
   players,
@@ -314,6 +316,7 @@ function RoundBlock({
   onTimer,
 }: {
   round: RoundView;
+  tournamentId: number;
   locked: boolean;
   roundMinutes: number | null;
   players: PlayerOption[];
@@ -341,6 +344,9 @@ function RoundBlock({
     <div style={{ marginBottom: "1.5rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>Round {round.number}</h2>
+        <Link className="pill" to={`/tournaments/${tournamentId}/round/${round.number}`}>
+          Round View
+        </Link>
         {!locked && (
           <button className="pill" onClick={confirmDelete.onClick}>
             Delete round

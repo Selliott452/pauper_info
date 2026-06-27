@@ -10,6 +10,7 @@ import { ArchetypesPage } from "./ArchetypesPage.tsx";
 import { ArchetypePage } from "./ArchetypePage.tsx";
 import { TournamentsPage } from "./TournamentsPage.tsx";
 import { TournamentPage } from "./TournamentPage.tsx";
+import { RoundTimerPage } from "./RoundTimerPage.tsx";
 import { CompetitorsPage } from "./CompetitorsPage.tsx";
 import { CompetitorPage } from "./CompetitorPage.tsx";
 import { RandomDeckPage } from "./RandomDeckPage.tsx";
@@ -49,6 +50,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/matches/players" element={<CasualPlayersPage />} />
             <Route path="/matches/players/:id" element={<CasualPlayerPage />} />
           </Route>
+          <Route path="/tournaments/:id/round/:roundNumber" element={<RoundTimerPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
