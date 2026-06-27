@@ -101,7 +101,7 @@ export function CompetitorsPage() {
             {rows.map((c) => (
               <tr key={c.id}>
                 <td data-label="Player">
-                  <Link to={`/players/${c.id}`}>{c.name}</Link>
+                  <Link to={`/tournaments/players/${c.id}`}>{c.name}</Link>
                 </td>
                 <td className="num" data-label="Events">{c.events}</td>
                 <td className="center" data-label="Match record">

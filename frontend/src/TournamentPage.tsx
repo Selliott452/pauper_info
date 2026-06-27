@@ -191,7 +191,7 @@ export function TournamentPage() {
         >
           Winner:{" "}
           {data.standings[0].competitorId != null ? (
-            <Link to={`/players/${data.standings[0].competitorId}`}>
+            <Link to={`/tournaments/players/${data.standings[0].competitorId}`}>
               <strong>{data.standings[0].name}</strong>
             </Link>
           ) : (
@@ -560,7 +560,7 @@ function StandingRow({
     <tr style={{ opacity: s.dropped ? 0.5 : 1 }}>
       <td style={center} data-label="Rank">{s.rank}</td>
       <td style={td} data-label="Player">
-        {s.competitorId != null ? <Link to={`/players/${s.competitorId}`}>{s.name}</Link> : s.name}
+        {s.competitorId != null ? <Link to={`/tournaments/players/${s.competitorId}`}>{s.name}</Link> : s.name}
         {s.dropped && <span style={{ color: "#999", fontSize: "0.8rem" }}> (dropped)</span>}
         {(s.archetype || s.deckUrl) && (
           <div style={{ fontSize: "0.85rem", color: "#666", marginTop: "0.15rem" }}>

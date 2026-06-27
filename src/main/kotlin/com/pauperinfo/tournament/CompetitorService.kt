@@ -42,6 +42,39 @@ class CompetitorService(
         )
     }
 
+    // Resolve a path identifier to a competitor page. Order of attempts:
+    //   1. a numeric id ("1") -> that competitor if it exists;
+    //   2. an exact (case-insensitive) name, with hyphens read as spaces ("josh-e" -> "Josh E");
+    //   3. a partial name ("josh") -> the competitor if only one name contains it, else the candidates.
+    fun resolve(identifier: String): CompetitorResolution {
+        val trimmed = identifier.trim()
+        if (trimmed.isEmpty()) return CompetitorResolution(null, emptyList())
+
+        trimmed.toIntOrNull()?.let { id ->
+            return if (competitorRepository.existsById(id)) CompetitorResolution(id, emptyList())
+            else CompetitorResolution(null, emptyList())
+        }
+
+        val needle = trimmed.replace('-', ' ').lowercase()
+        val competitors = competitorRepository.findAllByOrderByName()
+
+        val exact = competitors.filter { it.name.lowercase() == needle }
+        val matches = when {
+            exact.size == 1 -> return CompetitorResolution(exact.first().id, emptyList())
+            exact.isNotEmpty() -> exact
+            else -> competitors.filter { it.name.lowercase().contains(needle) }
+        }
+
+        return when (matches.size) {
+            0 -> CompetitorResolution(null, emptyList())
+            1 -> CompetitorResolution(matches.first().id, emptyList())
+            else -> {
+                val ids = matches.mapTo(HashSet()) { it.id }
+                CompetitorResolution(null, list().filter { it.id in ids })
+            }
+        }
+    }
+
     fun get(id: Int): CompetitorDetail {
         val competitor = competitorRepository.findById(id).orElseThrow {
             ResponseStatusException(HttpStatus.NOT_FOUND, "No such competitor")

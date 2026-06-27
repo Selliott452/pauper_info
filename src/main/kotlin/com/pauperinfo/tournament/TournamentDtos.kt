@@ -17,6 +17,14 @@ data class CompetitorSummary(
     val gameWinPct: Double,
 )
 
+// Outcome of resolving a competitor identifier (id / slug / partial name) to a page.
+// competitorId set => a unique match; otherwise candidates holds the ambiguous
+// matches to disambiguate between (empty => none).
+data class CompetitorResolution(
+    val competitorId: Int?,
+    val candidates: List<CompetitorSummary>,
+)
+
 // How a competitor finished one tournament.
 data class CompetitorEventResult(
     val eventId: Int,

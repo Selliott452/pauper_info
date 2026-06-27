@@ -42,8 +42,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/metagame" element={<MetagamePage />} />
             <Route path="/tournaments/:id" element={<TournamentPage />} />
-            <Route path="/players" element={<CompetitorsPage />} />
-            <Route path="/players/:id" element={<CompetitorPage />} />
+            <Route path="/tournaments/players" element={<CompetitorsPage />} />
+            <Route path="/tournaments/players/:id" element={<CompetitorPage />} />
             <Route path="/matches" element={<MatchesPage />} />
             <Route path="/matches/metagame" element={<CasualMetagamePage />} />
             <Route path="/matches/players" element={<CasualPlayersPage />} />

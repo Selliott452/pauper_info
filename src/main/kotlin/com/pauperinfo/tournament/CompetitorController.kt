@@ -19,4 +19,9 @@ class CompetitorController(private val competitorService: CompetitorService) {
 
     @GetMapping("/{id}")
     fun detail(@PathVariable id: Int): CompetitorDetail = competitorService.get(id)
+
+    // Resolve a numeric id, a name slug ("josh-e"), or a partial name ("josh") to a
+    // competitor page, or to a list of candidates when a partial name is ambiguous.
+    @GetMapping("/resolve/{identifier}")
+    fun resolve(@PathVariable identifier: String): CompetitorResolution = competitorService.resolve(identifier)
 }

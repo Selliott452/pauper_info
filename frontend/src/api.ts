@@ -574,6 +574,19 @@ export function fetchCompetitor(id: number): Promise<CompetitorDetail> {
   return apiGet(`/api/competitors/${id}`);
 }
 
+// Outcome of resolving a competitor identifier (numeric id, name slug, or partial name).
+// competitorId set => a unique match; otherwise candidates lists the ambiguous matches
+// (empty => no such competitor).
+export interface CompetitorResolution {
+  competitorId: number | null;
+  candidates: CompetitorSummary[];
+}
+
+// Resolves "1", "josh-e", or "josh" to a single competitor or a list of candidates.
+export function resolveCompetitor(identifier: string): Promise<CompetitorResolution> {
+  return apiGet(`/api/competitors/resolve/${encodeURIComponent(identifier)}`);
+}
+
 export function createCompetitor(name: string): Promise<CompetitorSummary> {
   return apiSend("POST", `/api/competitors`, { name });
 }

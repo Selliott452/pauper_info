@@ -5,10 +5,80 @@ import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
 import { ArchetypeLink } from "./ArchetypeLink";
 import { pct, archetypeLabel } from "./format";
-import { fetchCompetitor, type OpponentRecord } from "./api";
+import { fetchCompetitor, resolveCompetitor, type OpponentRecord } from "./api";
 
+// The :id route param can be a numeric id ("1"), a name slug ("josh-e"), or a
+// partial name ("josh"). A number loads the page directly; anything else is sent to
+// the backend resolver, which either points at one competitor or lists candidates.
 export function CompetitorPage() {
-  const id = Number(useParams().id);
+  const param = useParams().id ?? "";
+  if (/^\d+$/.test(param)) return <CompetitorDetailView id={Number(param)} />;
+  return <CompetitorResolver identifier={param} />;
+}
+
+// Resolves a non-numeric identifier: render the page in place when unique (keeping the
+// slug/partial URL), otherwise show the list of competitors whose names matched.
+function CompetitorResolver({ identifier }: { identifier: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["competitor-resolve", identifier],
+    queryFn: () => resolveCompetitor(identifier),
+  });
+
+  if (isLoading) {
+    return (
+      <main className="page">
+        <BackLink />
+        <Loading />
+      </main>
+    );
+  }
+
+  if (data?.competitorId != null) {
+    return <CompetitorDetailView id={data.competitorId} />;
+  }
+
+  const candidates = data?.candidates ?? [];
+
+  return (
+    <main className="page">
+      <BackLink />
+      {candidates.length === 0 ? (
+        <p style={{ color: "#666" }}>No player matches “{identifier}”.</p>
+      ) : (
+        <>
+          <h1 style={{ marginBottom: "0.25rem" }}>Players matching “{identifier}”</h1>
+          <p style={{ color: "#555", margin: "0 0 1rem" }}>{candidates.length} players match. Pick one:</p>
+          <table className="data-table" style={{ maxWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th className="center">Events</th>
+                <th className="center">Record</th>
+                <th className="num">Match win%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((c) => (
+                <tr key={c.id}>
+                  <td data-label="Player">
+                    <Link to={`/tournaments/players/${c.id}`}>{c.name}</Link>
+                  </td>
+                  <td className="center" data-label="Events">{c.events}</td>
+                  <td className="center" data-label="Record">
+                    {c.wins}-{c.losses}-{c.draws}
+                  </td>
+                  <td className="num" data-label="Match win%">{pct(c.matchWinPct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </main>
+  );
+}
+
+function CompetitorDetailView({ id }: { id: number }) {
   const { data, isLoading } = useQuery({ queryKey: ["competitor", id], queryFn: () => fetchCompetitor(id) });
 
   return (
@@ -76,7 +146,7 @@ export function CompetitorPage() {
             showGames
             rows={data.vsPlayers.map((o: OpponentRecord) => ({
               key: o.opponentId != null ? `c${o.opponentId}` : o.opponentName,
-              label: o.opponentId != null ? <Link to={`/players/${o.opponentId}`}>{o.opponentName}</Link> : o.opponentName,
+              label: o.opponentId != null ? <Link to={`/tournaments/players/${o.opponentId}`}>{o.opponentName}</Link> : o.opponentName,
               wins: o.wins,
               losses: o.losses,
               draws: o.draws,

@@ -126,7 +126,7 @@ export function ArchetypePage() {
                   emptyMessage="No recorded tournament games yet."
                   rows={data.tournamentPlayers.map((p) => ({
                     key: p.playerId != null ? `c${p.playerId}` : p.name,
-                    label: p.playerId != null ? <Link to={`/players/${p.playerId}`}>{p.name}</Link> : p.name,
+                    label: p.playerId != null ? <Link to={`/tournaments/players/${p.playerId}`}>{p.name}</Link> : p.name,
                     wins: p.wins,
                     losses: p.losses,
                     draws: p.draws,
