@@ -28,6 +28,12 @@ class CasualController(private val casualService: CasualService) {
     @GetMapping("/players/{id}")
     fun playerDetail(@PathVariable id: Int): CasualPlayerDetail = casualService.playerDetail(id)
 
+    // Resolve a numeric id, a name slug ("josh-e"), or a partial name ("josh") to a
+    // player page, or to a list of candidates when a partial name is ambiguous.
+    @GetMapping("/players/resolve/{identifier}")
+    fun resolvePlayer(@PathVariable identifier: String): CasualPlayerResolution =
+        casualService.resolvePlayerIdentifier(identifier)
+
     @GetMapping("/matches")
     fun matches(): List<CasualMatchView> = casualService.listMatches()
 

@@ -104,6 +104,39 @@ class CasualService(
         }.sortedWith(compareByDescending<CasualPlayerSummary> { it.matchWinPct }.thenByDescending { it.wins })
     }
 
+    // Resolve a path identifier to a player page. Order of attempts:
+    //   1. a numeric id ("1") -> that player if it exists;
+    //   2. an exact (case-insensitive) name, with hyphens read as spaces ("josh-e" -> "Josh E");
+    //   3. a partial name ("josh") -> the player if only one name contains it, else the candidates.
+    fun resolvePlayerIdentifier(identifier: String): CasualPlayerResolution {
+        val trimmed = identifier.trim()
+        if (trimmed.isEmpty()) return CasualPlayerResolution(null, emptyList())
+
+        trimmed.toIntOrNull()?.let { id ->
+            return if (playerRepository.existsById(id)) CasualPlayerResolution(id, emptyList())
+            else CasualPlayerResolution(null, emptyList())
+        }
+
+        val needle = trimmed.replace('-', ' ').lowercase()
+        val players = playerRepository.findAllByOrderByName()
+
+        val exact = players.filter { it.name.lowercase() == needle }
+        val matches = when {
+            exact.size == 1 -> return CasualPlayerResolution(exact.first().id, emptyList())
+            exact.isNotEmpty() -> exact
+            else -> players.filter { it.name.lowercase().contains(needle) }
+        }
+
+        return when (matches.size) {
+            0 -> CasualPlayerResolution(null, emptyList())
+            1 -> CasualPlayerResolution(matches.first().id, emptyList())
+            else -> {
+                val ids = matches.mapTo(HashSet()) { it.id }
+                CasualPlayerResolution(null, leaderboard().filter { it.id in ids })
+            }
+        }
+    }
+
     fun playerDetail(id: Int): CasualPlayerDetail {
         val player = playerRepository.findById(id).orElseThrow {
             ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")

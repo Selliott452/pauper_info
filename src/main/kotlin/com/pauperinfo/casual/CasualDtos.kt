@@ -43,6 +43,14 @@ data class CasualPlayerSummary(
     val matchWinPct: Double,
 )
 
+// Outcome of resolving a player identifier (id / slug / partial name) to a page.
+// Exactly one of these is meaningful: playerId set => unique match (load that page);
+// otherwise candidates holds the ambiguous matches to disambiguate between (empty => none).
+data class CasualPlayerResolution(
+    val playerId: Int?,
+    val candidates: List<CasualPlayerSummary>,
+)
+
 // W-L-D bucketed by archetype (matches the frontend ArchetypeRecord shape).
 data class RecordLine(val archetype: String?, val wins: Int, val losses: Int, val draws: Int)
 data class OpponentLine(val opponentId: Int, val opponentName: String, val wins: Int, val losses: Int, val draws: Int)

@@ -6,7 +6,7 @@ import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
 import { ArchetypeLink } from "./ArchetypeLink";
 import { pct, archetypeLabel } from "./format";
-import { fetchCasualPlayer } from "./api";
+import { fetchCasualPlayer, resolveCasualPlayer } from "./api";
 
 // One side of a match row: name (linked unless it's the current player), the
 // archetype in parens, and a ↗ link to the decklist. Mirrors the matches page.
@@ -26,8 +26,81 @@ function side(name: string, playerId: number | null, arch: string | null, deck: 
 
 const PAGE_SIZE = 25;
 
+// The :id route param can be a numeric id ("1"), a name slug ("josh-e"), or a
+// partial name ("josh"). A number loads the page directly; anything else is sent to
+// the backend resolver, which either points at one player or lists candidates.
 export function CasualPlayerPage() {
-  const id = Number(useParams().id);
+  const param = useParams().id ?? "";
+  if (/^\d+$/.test(param)) return <PlayerDetailView id={Number(param)} />;
+  return <PlayerResolver identifier={param} />;
+}
+
+// Resolves a non-numeric identifier: redirect to the canonical id page when unique,
+// otherwise show the list of players whose names matched.
+function PlayerResolver({ identifier }: { identifier: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["casual-player-resolve", identifier],
+    queryFn: () => resolveCasualPlayer(identifier),
+  });
+
+  if (isLoading) {
+    return (
+      <main className="page">
+        <BackLink />
+        <Loading />
+      </main>
+    );
+  }
+
+  // Unique match: render the page in place, keeping the slug/partial URL the user typed.
+  if (data?.playerId != null) {
+    return <PlayerDetailView id={data.playerId} />;
+  }
+
+  const candidates = data?.candidates ?? [];
+
+  return (
+    <main className="page">
+      <BackLink />
+      {candidates.length === 0 ? (
+        <p style={{ color: "#666" }}>No player matches “{identifier}”.</p>
+      ) : (
+        <>
+          <h1 style={{ marginBottom: "0.25rem" }}>Players matching “{identifier}”</h1>
+          <p style={{ color: "#555", margin: "0 0 1rem" }}>
+            {candidates.length} players match. Pick one:
+          </p>
+          <table className="data-table" style={{ maxWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th className="center">Matches</th>
+                <th className="center">Record</th>
+                <th className="num">Win%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((p) => (
+                <tr key={p.id}>
+                  <td data-label="Player">
+                    <Link to={`/matches/players/${p.id}`}>{p.name}</Link>
+                  </td>
+                  <td className="center" data-label="Matches">{p.matches}</td>
+                  <td className="center" data-label="Record">
+                    {p.wins}-{p.losses}-{p.draws}
+                  </td>
+                  <td className="num" data-label="Win%">{p.matches > 0 ? pct(p.matchWinPct) : "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </main>
+  );
+}
+
+function PlayerDetailView({ id }: { id: number }) {
   const { data, isLoading } = useQuery({ queryKey: ["casual-player", id], queryFn: () => fetchCasualPlayer(id) });
 
   const [page, setPage] = useState(0);

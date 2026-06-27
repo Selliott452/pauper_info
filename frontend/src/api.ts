@@ -650,6 +650,19 @@ export function fetchCasualPlayer(id: number): Promise<CasualPlayerDetail> {
   return apiGet(`/api/casual/players/${id}`);
 }
 
+// Outcome of resolving a player identifier (numeric id, name slug, or partial name).
+// playerId set => a unique match; otherwise candidates lists the ambiguous matches
+// (empty => no such player).
+export interface CasualPlayerResolution {
+  playerId: number | null;
+  candidates: CasualPlayerSummary[];
+}
+
+// Resolves "1", "josh-e", or "josh" to a single player or a list of candidates.
+export function resolveCasualPlayer(identifier: string): Promise<CasualPlayerResolution> {
+  return apiGet(`/api/casual/players/resolve/${encodeURIComponent(identifier)}`);
+}
+
 export function fetchCasualMatches(): Promise<CasualMatchView[]> {
   return apiGet(`/api/casual/matches`);
 }
