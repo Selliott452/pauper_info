@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchTournamentMetagame, type ArchetypeMetagameRow } from "./api";
+import { ArchetypeLink } from "./ArchetypeLink";
 import { Loading, ErrorText } from "./QueryState";
 import { pct } from "./format";
 import { winrateColor } from "./winrate";
@@ -122,7 +123,7 @@ export function MetagamePage() {
                 const games = r.wins + r.losses + r.draws;
                 return (
                   <tr key={r.archetype}>
-                    <td>{r.archetype}</td>
+                    <td><ArchetypeLink archetype={r.archetype} /></td>
                     <td className="num">{r.players.toLocaleString()}</td>
                     <td className="num">{pct(r.share)}</td>
                     <td className="num">{games === 0 ? "-" : `${r.wins}-${r.losses}-${r.draws}`}</td>
