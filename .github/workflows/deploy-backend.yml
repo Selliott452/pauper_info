@@ -65,4 +65,5 @@ jobs:
             --image=$IMAGE:${{ github.sha }} \
             --region=${{ vars.GCP_REGION }} \
             --project=${{ vars.GCP_PROJECT_ID }} \
-            --platform=managed
+            --platform=managed \
+            --cpu-boost

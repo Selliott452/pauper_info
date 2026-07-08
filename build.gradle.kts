@@ -27,7 +27,6 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("com.google.guava:guava:33.4.8-jre")
-	implementation("com.microsoft.playwright:playwright:1.60.0")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jsoup:jsoup:1.18.3")
 	implementation("org.flywaydb:flyway-core")
@@ -61,6 +60,13 @@ jib {
 		ports = listOf("8080")
 		// Cloud Run sets $PORT; Spring honours SERVER_PORT.
 		environment = mapOf("SERVER_PORT" to "8080")
-		jvmFlags = listOf("-XX:MaxRAMPercentage=75")
+		jvmFlags = listOf(
+			"-XX:MaxRAMPercentage=75",
+			// Avoid SecureRandom blocking on /dev/random for entropy during startup.
+			"-Djava.security.egd=file:/dev/./urandom",
+			// Skip the C2 JIT tier: faster class warmup at the cost of peak
+			// throughput, a good trade for short-lived Cloud Run instances.
+			"-XX:TieredStopAtLevel=1",
+		)
 	}
 }
