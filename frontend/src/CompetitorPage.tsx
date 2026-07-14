@@ -130,6 +130,7 @@ function CompetitorDetailView({ id }: { id: number }) {
             showGames
             rows={data.archetypesPlayed.map((a) => ({
               key: archetypeLabel(a),
+              name: archetypeLabel(a),
               label: <ArchetypeLink archetype={a.archetype} />,
               wins: a.wins,
               losses: a.losses,
@@ -146,6 +147,7 @@ function CompetitorDetailView({ id }: { id: number }) {
             showGames
             rows={data.vsPlayers.map((o: OpponentRecord) => ({
               key: o.opponentId != null ? `c${o.opponentId}` : o.opponentName,
+              name: o.opponentName,
               label: o.opponentId != null ? <Link to={`/tournaments/players/${o.opponentId}`}>{o.opponentName}</Link> : o.opponentName,
               wins: o.wins,
               losses: o.losses,
@@ -162,6 +164,7 @@ function CompetitorDetailView({ id }: { id: number }) {
             showGames
             rows={data.vsArchetypes.map((a) => ({
               key: archetypeLabel(a),
+              name: archetypeLabel(a),
               label: <ArchetypeLink archetype={a.archetype} />,
               wins: a.wins,
               losses: a.losses,

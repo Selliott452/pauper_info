@@ -2,12 +2,26 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
-import { fetchCardArchetypes, fetchCardDetail, fetchCooccurrences } from "./api";
+import { fetchCardArchetypes, fetchCardDetail, fetchCooccurrences, type CooccurringCard } from "./api";
 import { CardLink } from "./CardLink";
 import { ManaSymbols, ColorSymbols } from "./ManaSymbols";
 import { Bar } from "./Bar";
+import { SortableTh } from "./SortableTh";
 import { Loading } from "./QueryState";
 import { formatAvg } from "./format";
+
+type SortKey = "name" | "deckCount";
+type SortDir = "asc" | "desc";
+
+function compareCooccurrences(a: CooccurringCard, b: CooccurringCard, sort: SortKey, dir: SortDir): number {
+  const sign = dir === "asc" ? 1 : -1;
+  switch (sort) {
+    case "name":
+      return a.name.localeCompare(b.name) * sign;
+    case "deckCount":
+      return (a.deckCount - b.deckCount) * sign;
+  }
+}
 
 function StatTile({ value, label, to }: { value: string; label: string; to?: string }) {
   const style = {
@@ -96,6 +110,20 @@ export function CardPage() {
   const cooccur = cooccurQuery.data;
   // Top 5 most-central archetypes (the API returns them ordered by inclusion).
   const archetypes = (archetypeQuery.data ?? []).slice(0, 5);
+
+  // Sort state for the "Played with" table. Unset by default: shows in the
+  // API's natural order until a header is clicked.
+  const [cooccurSort, setCooccurSort] = useState<{ col: SortKey; dir: SortDir } | null>(null);
+  function toggleCooccurSort(col: SortKey) {
+    setCooccurSort((s) =>
+      s && s.col === col ? { col, dir: s.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "name" ? "asc" : "desc" },
+    );
+  }
+  const cooccurRows = cooccur
+    ? cooccurSort
+      ? [...cooccur.cooccurrences].sort((a, b) => compareCooccurrences(a, b, cooccurSort.col, cooccurSort.dir))
+      : cooccur.cooccurrences
+    : [];
 
   return (
     <main className="page">
@@ -223,13 +251,13 @@ export function CardPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Card</th>
-                  <th className="num">Decks</th>
+                  <SortableTh label="Card" active={cooccurSort?.col === "name"} dir={cooccurSort?.dir ?? "asc"} onClick={() => toggleCooccurSort("name")} />
+                  <SortableTh label="Decks" align="right" active={cooccurSort?.col === "deckCount"} dir={cooccurSort?.dir ?? "desc"} onClick={() => toggleCooccurSort("deckCount")} />
                   <th className="num">% of decks</th>
                 </tr>
               </thead>
               <tbody>
-                {cooccur.cooccurrences.map((c) => (
+                {cooccurRows.map((c) => (
                   <tr key={c.id}>
                     <td data-label="Card">
                       <CardLink name={c.name} />

@@ -1,10 +1,35 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchTournamentMetagame, type ArchetypeMetagameRow } from "./api";
 import { ArchetypeLink } from "./ArchetypeLink";
+import { SortableTh } from "./SortableTh";
 import { Loading, ErrorText } from "./QueryState";
 import { pct } from "./format";
 import { winrateColor } from "./winrate";
+
+type SortKey = "archetype" | "players" | "share" | "record" | "winRate";
+type SortDir = "asc" | "desc";
+
+// Missing win rates always sort to the bottom regardless of direction.
+function compareRows(a: ArchetypeMetagameRow, b: ArchetypeMetagameRow, sort: SortKey, dir: SortDir): number {
+  const sign = dir === "asc" ? 1 : -1;
+  switch (sort) {
+    case "archetype":
+      return a.archetype.localeCompare(b.archetype) * sign;
+    case "players":
+      return (a.players - b.players) * sign;
+    case "share":
+      return (a.share - b.share) * sign;
+    case "record":
+      return (a.wins - b.wins) * sign;
+    case "winRate":
+      if (a.winRate == null && b.winRate == null) return 0;
+      if (a.winRate == null) return 1;
+      if (b.winRate == null) return -1;
+      return (a.winRate - b.winRate) * sign;
+  }
+}
 
 // Warm brass/parchment-friendly slice palette.
 const SLICE_COLORS = [
@@ -60,6 +85,16 @@ export function MetagamePage() {
   const totalPlayers = (data ?? []).reduce((sum, r) => sum + r.players, 0);
   const slices = data ? toSlices(data, totalPlayers) : [];
 
+  // Sort state is local (not URL-persisted, unlike filtered pages). Unset by
+  // default: the table shows in the API's natural order until a header is clicked.
+  const [sort, setSort] = useState<{ col: SortKey; dir: SortDir } | null>(null);
+  function toggleSort(col: SortKey) {
+    setSort((s) =>
+      s && s.col === col ? { col, dir: s.dir === "asc" ? "desc" : "asc" } : { col, dir: col === "archetype" ? "asc" : "desc" },
+    );
+  }
+  const rows = data ? (sort ? [...data].sort((a, b) => compareRows(a, b, sort.col, sort.dir)) : data) : [];
+
   return (
     <main className="page">
       <h1>Tournament Metagame</h1>
@@ -111,15 +146,15 @@ export function MetagamePage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Archetype</th>
-                <th className="num">Decks</th>
-                <th className="num">Field</th>
-                <th className="num">Record</th>
-                <th className="num">Win rate</th>
+                <SortableTh label="Archetype" active={sort?.col === "archetype"} dir={sort?.dir ?? "desc"} onClick={() => toggleSort("archetype")} />
+                <SortableTh label="Decks" align="right" active={sort?.col === "players"} dir={sort?.dir ?? "desc"} onClick={() => toggleSort("players")} />
+                <SortableTh label="Field" align="right" active={sort?.col === "share"} dir={sort?.dir ?? "desc"} onClick={() => toggleSort("share")} />
+                <SortableTh label="Record" align="right" active={sort?.col === "record"} dir={sort?.dir ?? "desc"} onClick={() => toggleSort("record")} />
+                <SortableTh label="Win rate" align="right" active={sort?.col === "winRate"} dir={sort?.dir ?? "desc"} onClick={() => toggleSort("winRate")} />
               </tr>
             </thead>
             <tbody>
-              {data.map((r) => {
+              {rows.map((r) => {
                 const games = r.wins + r.losses + r.draws;
                 return (
                   <tr key={r.archetype}>

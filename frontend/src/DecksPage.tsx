@@ -7,13 +7,47 @@ import {
   fetchDecks,
   fetchDecksCount,
   type DeckListQuery,
+  type DeckSummary,
 } from "./api";
 import { ColorSymbols } from "./ManaSymbols";
 import { MultiCombobox } from "./ComboBox";
 import { ColorFilter } from "./ColorFilter";
 import { SearchInput } from "./SearchInput";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { SortableTh } from "./SortableTh";
 import { Loading, ErrorText } from "./QueryState";
+
+type SortKey = "name" | "archetype" | "author" | "colors";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: [SortKey, string][] = [
+  ["name", "Deck"],
+  ["archetype", "Archetype"],
+  ["author", "Author"],
+  ["colors", "Colors"],
+];
+
+// Missing values always sort to the bottom regardless of direction.
+function compareDecks(a: DeckSummary, b: DeckSummary, sort: SortKey, dir: SortDir): number {
+  const sign = dir === "asc" ? 1 : -1;
+  switch (sort) {
+    case "name":
+      return compareNullable(a.name, b.name, sign);
+    case "archetype":
+      return compareNullable(a.archetype, b.archetype, sign);
+    case "author":
+      return compareNullable(a.author, b.author, sign);
+    case "colors":
+      return a.colors.join("").localeCompare(b.colors.join("")) * sign;
+  }
+}
+
+function compareNullable(x: string | null, y: string | null, sign: number): number {
+  if (x == null && y == null) return 0;
+  if (x == null) return 1;
+  if (y == null) return -1;
+  return x.localeCompare(y) * sign;
+}
 
 export function DecksPage() {
   // Filter state lives in the URL so it persists across navigation/refresh.
@@ -26,6 +60,19 @@ export function DecksPage() {
   const confidences = params.get("confidence")?.split(",").filter(Boolean) ?? [];
   const mainboardCards = params.getAll("mainboardCards");
   const sideboardCards = params.getAll("sideboardCards");
+
+  // Sort column + direction persist in the URL. Unset by default: the table shows
+  // in the API's natural order until a header is clicked.
+  const sort = params.get("sort") as SortKey | null;
+  const dir = (params.get("dir") as SortDir) ?? "asc";
+
+  function setSort(key: SortKey) {
+    const nextDir = sort === key ? (dir === "asc" ? "desc" : "asc") : "asc";
+    const next = new URLSearchParams(params);
+    next.set("sort", key);
+    next.set("dir", nextDir);
+    setParams(next, { replace: true });
+  }
 
   function setParam(key: string, value: string | null) {
     const next = new URLSearchParams(params);
@@ -214,14 +261,13 @@ export function DecksPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Deck</th>
-              <th>Archetype</th>
-              <th>Author</th>
-              <th>Colors</th>
+              {SORT_COLUMNS.map(([col, label]) => (
+                <SortableTh key={col} label={label} active={sort === col} dir={dir} onClick={() => setSort(col)} />
+              ))}
             </tr>
           </thead>
           <tbody>
-            {data.map((deck) => (
+            {(sort ? [...data].sort((a, b) => compareDecks(a, b, sort, dir)) : data).map((deck) => (
               <tr key={deck.id}>
                 <td data-label="Deck">
                   <Link to={`/decks/${encodeURIComponent(deck.id)}`}>{deck.name ?? "(untitled deck)"}</Link>

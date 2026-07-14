@@ -126,6 +126,7 @@ export function ArchetypePage() {
                   emptyMessage="No recorded tournament games yet."
                   rows={data.tournamentPlayers.map((p) => ({
                     key: p.playerId != null ? `c${p.playerId}` : p.name,
+                    name: p.name,
                     label: p.playerId != null ? <Link to={`/tournaments/players/${p.playerId}`}>{p.name}</Link> : p.name,
                     wins: p.wins,
                     losses: p.losses,
@@ -141,6 +142,7 @@ export function ArchetypePage() {
                   emptyMessage="No recorded casual games yet."
                   rows={data.casualPlayers.map((p) => ({
                     key: p.playerId != null ? `p${p.playerId}` : p.name,
+                    name: p.name,
                     label: p.playerId != null ? <Link to={`/matches/players/${p.playerId}`}>{p.name}</Link> : p.name,
                     wins: p.wins,
                     losses: p.losses,
