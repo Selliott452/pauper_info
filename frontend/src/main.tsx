@@ -21,6 +21,7 @@ import { MatchesPage } from "./MatchesPage.tsx";
 import { CasualPlayersPage } from "./CasualPlayersPage.tsx";
 import { CasualPlayerPage } from "./CasualPlayerPage.tsx";
 import { Layout } from "./Layout.tsx";
+import { KeepAlive } from "./KeepAlive.tsx";
 import "./index.css";
 
 // QueryClient holds the cache for all server data fetched via TanStack Query.
@@ -29,6 +30,7 @@ const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <KeepAlive />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route element={<Layout />}>

@@ -1,6 +1,6 @@
 // Base URL for the API. Empty in dev (same-origin via the Vite proxy); set to
 // the Cloud Run URL at build time (VITE_API_BASE_URL) for the GitHub Pages build.
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 // --- Fetch helpers --------------------------------------------------------------
 // Every endpoint goes through one of these so error handling, headers, and JSON
@@ -36,6 +36,12 @@ async function apiSend<T>(method: string, path: string, body?: unknown): Promise
 async function apiSendVoid(method: string, path: string): Promise<void> {
   const res = await fetch(`${API_BASE}${path}`, { method });
   if (!res.ok) throw new Error(`API error ${res.status}`);
+}
+
+// Fire-and-forget request to keep the Cloud Run instance warm; failures are ignored
+// since nothing depends on the response (see KeepAlive.tsx).
+export function pingApi(): void {
+  fetch(`${API_BASE}/api/ping`).catch(() => {});
 }
 
 type ParamValue = string | number | string[] | undefined | null;
