@@ -276,6 +276,77 @@ th:hover {
   background: var(--surface-alt);
 }
 
+/* Landing page hero + quick-link cards, centered in the viewport. */
+.home-page {
+  min-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home-hero {
+  padding: 1.5rem 0 2rem;
+}
+.home-hero h1 {
+  font-size: 2.4rem;
+}
+.home-hero .page-subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 0;
+}
+
+.home-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 0.9rem;
+  max-width: 900px;
+}
+
+.home-footnote {
+  margin-top: 1.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.home-link-title {
+  white-space: nowrap;
+}
+
+.home-link-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+  color: var(--ink);
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+.home-link-card:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.home-link-card svg {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 2px;
+}
+.home-link-title {
+  font-weight: 700;
+}
+.home-link-description {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
 /* Centered page wrapper used by every route. */
 .page {
   max-width: 1000px;
