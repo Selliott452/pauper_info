@@ -14,6 +14,7 @@ import { RoundTimerPage } from "./RoundTimerPage.tsx";
 import { CompetitorsPage } from "./CompetitorsPage.tsx";
 import { CompetitorPage } from "./CompetitorPage.tsx";
 import { RandomDeckPage } from "./RandomDeckPage.tsx";
+import { HomePage } from "./HomePage.tsx";
 import { MatchupsPage } from "./MatchupsPage.tsx";
 import { MetagamePage } from "./MetagamePage.tsx";
 import { CasualMetagamePage } from "./CasualMetagamePage.tsx";
@@ -34,7 +35,8 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<RandomDeckPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/random-deck" element={<RandomDeckPage />} />
             <Route path="/matchups" element={<MatchupsPage />} />
             <Route path="/archetypes" element={<ArchetypesPage />} />
             <Route path="/archetypes/:name" element={<ArchetypePage />} />

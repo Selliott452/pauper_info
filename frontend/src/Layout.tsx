@@ -15,7 +15,7 @@ export function Layout() {
   const onArchetypes = pathname.startsWith("/archetypes");
   const onCards = pathname.startsWith("/cards");
   const onDecks = pathname.startsWith("/decks");
-  const onRandom = pathname === "/";
+  const onRandom = pathname === "/random-deck";
   const onMatchups = pathname.startsWith("/matchups");
   const onMetagame = pathname === "/tournaments/metagame";
   const onPlayers = pathname.startsWith("/tournaments/players");
@@ -42,16 +42,6 @@ export function Layout() {
         </div>
 
         <div className={`nav-links ${menuOpen ? "open" : ""}`} onClick={closeMenu}>
-          <div className="nav-group-label">Discover</div>
-          <Link to="/" className={navClass(onRandom)}>
-            <IconArrowsShuffle size={18} stroke={2} />
-            Random deck
-          </Link>
-          <Link to="/matchups" className={navClass(onMatchups)}>
-            <IconScale size={18} stroke={2} />
-            Matchups
-          </Link>
-
           <div className="nav-group-label">Tournaments</div>
           <Link to="/tournaments" className={navClass(onTournaments)}>
             <IconTrophy size={18} stroke={2} />
@@ -80,10 +70,14 @@ export function Layout() {
             Players
           </Link>
 
-          <div className="nav-group-label">Metagame</div>
+          <div className="nav-group-label">Discover</div>
           <Link to="/archetypes" className={navClass(onArchetypes)}>
             <IconAffiliate size={18} stroke={2} />
             Archetypes
+          </Link>
+          <Link to="/matchups" className={navClass(onMatchups)}>
+            <IconScale size={18} stroke={2} />
+            Matchups
           </Link>
           <Link to="/cards" className={navClass(onCards)}>
             <IconCards size={18} stroke={2} />
@@ -92,6 +86,10 @@ export function Layout() {
           <Link to="/decks" className={navClass(onDecks)}>
             <IconLayoutGrid size={18} stroke={2} />
             Decks
+          </Link>
+          <Link to="/random-deck" className={navClass(onRandom)}>
+            <IconArrowsShuffle size={18} stroke={2} />
+            Random deck
           </Link>
         </div>
       </nav>
