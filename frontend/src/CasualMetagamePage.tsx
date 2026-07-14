@@ -36,7 +36,6 @@ const SLICE_COLORS = [
   "#9a5b1e", "#c98a3c", "#5b8a72", "#8a5b9a", "#3d6b8a",
   "#b5453c", "#7a8a3d", "#c9a23c", "#6b5b8a", "#3d8a7a",
 ];
-const OTHER_COLOR = "#bdb3a0";
 
 interface Slice {
   label: string;
@@ -45,20 +44,13 @@ interface Slice {
   color: string;
 }
 
-// Collapse the long tail into a single "Other" slice so the donut stays readable.
-function toSlices(rows: ArchetypeMetagameRow[], total: number, topN = 9): Slice[] {
-  const top: Slice[] = rows.slice(0, topN).map((r, i) => ({
+function toSlices(rows: ArchetypeMetagameRow[]): Slice[] {
+  return rows.map((r, i) => ({
     label: r.archetype,
     appearances: r.players,
     share: r.share,
     color: SLICE_COLORS[i % SLICE_COLORS.length],
   }));
-  const rest = rows.slice(topN);
-  if (rest.length > 0) {
-    const appearances = rest.reduce((s, r) => s + r.players, 0);
-    top.push({ label: `Other (${rest.length})`, appearances, share: total > 0 ? appearances / total : 0, color: OTHER_COLOR });
-  }
-  return top;
 }
 
 function SliceTooltip({ active, payload }: { active?: boolean; payload?: { payload: Slice }[] }) {
@@ -83,7 +75,7 @@ export function CasualMetagamePage() {
   });
 
   const totalAppearances = (data ?? []).reduce((sum, r) => sum + r.players, 0);
-  const slices = data ? toSlices(data, totalAppearances) : [];
+  const slices = data ? toSlices(data) : [];
 
   // Sort state is local (not URL-persisted, unlike filtered pages). Unset by
   // default: the table shows in the API's natural order until a header is clicked.
@@ -137,6 +129,7 @@ export function CasualMetagamePage() {
                   layout="vertical"
                   align="right"
                   verticalAlign="middle"
+                  wrapperStyle={{ maxHeight: 300, overflowY: "auto" }}
                   formatter={(value) => <span className="legend-label">{value}</span>}
                 />
               </PieChart>
