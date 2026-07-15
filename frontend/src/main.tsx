@@ -10,6 +10,7 @@ import { ArchetypesPage } from "./ArchetypesPage.tsx";
 import { ArchetypePage } from "./ArchetypePage.tsx";
 import { TournamentsPage } from "./TournamentsPage.tsx";
 import { TournamentPage } from "./TournamentPage.tsx";
+import { LatestTournamentPage } from "./LatestTournamentPage.tsx";
 import { RoundTimerPage } from "./RoundTimerPage.tsx";
 import { CompetitorsPage } from "./CompetitorsPage.tsx";
 import { CompetitorPage } from "./CompetitorPage.tsx";
@@ -47,6 +48,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/decks/:id" element={<DeckPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/metagame" element={<MetagamePage />} />
+            <Route path="/tournaments/latest" element={<LatestTournamentPage />} />
             <Route path="/tournaments/:id" element={<TournamentPage />} />
             <Route path="/tournaments/players" element={<CompetitorsPage />} />
             <Route path="/tournaments/players/:id" element={<CompetitorPage />} />
