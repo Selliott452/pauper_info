@@ -21,6 +21,7 @@ import { CasualMetagamePage } from "./CasualMetagamePage.tsx";
 import { MatchesPage } from "./MatchesPage.tsx";
 import { CasualPlayersPage } from "./CasualPlayersPage.tsx";
 import { CasualPlayerPage } from "./CasualPlayerPage.tsx";
+import { ManaTrackerPage } from "./ManaTrackerPage.tsx";
 import { Layout } from "./Layout.tsx";
 import { KeepAlive } from "./KeepAlive.tsx";
 import "./index.css";
@@ -53,6 +54,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/matches/metagame" element={<CasualMetagamePage />} />
             <Route path="/matches/players" element={<CasualPlayersPage />} />
             <Route path="/matches/players/:id" element={<CasualPlayerPage />} />
+            <Route path="/tools/mana-tracker" element={<ManaTrackerPage />} />
           </Route>
           <Route path="/tournaments/:id/round/:roundNumber" element={<RoundTimerPage />} />
         </Routes>

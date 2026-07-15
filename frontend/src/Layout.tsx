@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { IconAffiliate, IconArrowsShuffle, IconCards, IconChartPie, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
+import { IconAffiliate, IconArrowsShuffle, IconCards, IconChartPie, IconDroplet, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
 
 function navClass(active: boolean): string {
   return active ? "nav-item active" : "nav-item";
@@ -23,6 +23,7 @@ export function Layout() {
   const onCasualPlayers = pathname.startsWith("/matches/players");
   const onCasualMetagame = pathname === "/matches/metagame";
   const onMatches = pathname === "/matches";
+  const onManaTracker = pathname === "/tools/mana-tracker";
 
   return (
     <div className="app-shell">
@@ -90,6 +91,12 @@ export function Layout() {
           <Link to="/random-deck" className={navClass(onRandom)}>
             <IconArrowsShuffle size={18} stroke={2} />
             Random deck
+          </Link>
+
+          <div className="nav-group-label">Tools</div>
+          <Link to="/tools/mana-tracker" className={navClass(onManaTracker)}>
+            <IconDroplet size={18} stroke={2} />
+            Mana tracker
           </Link>
         </div>
       </nav>

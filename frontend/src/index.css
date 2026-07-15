@@ -984,6 +984,241 @@ a.pill {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+/* Mana tracker: color/count cards + a bigger storm counter, both built from the
+   same +/- button so they're easy to tap on a phone during a game. */
+.mana-tracker-section {
+  margin-bottom: 2rem;
+}
+.mana-tracker-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+.mana-tracker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.75rem;
+}
+/* The card itself is the hit target: two transparent buttons stacked as
+   position:absolute halves handle the click, and the visible content (symbol +
+   count) floats on top with pointer-events:none so clicks pass through to
+   whichever half is underneath the pointer. */
+.mana-tracker-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  height: 6.5rem;
+}
+/* Each card is tinted toward its mana color (a muted wash, not the saturated
+   Scryfall hue, so it still reads as part of the warm parchment palette) and
+   its tap halves darken toward the same hue on hover instead of the generic
+   accent color. */
+.mana-tracker-card-w {
+  background: #faf5e1;
+  border-color: #e6d69f;
+}
+.mana-tracker-card-w .mana-tracker-half:hover:not(:disabled) {
+  background: #f2e3ad;
+  color: #7a6423;
+}
+.mana-tracker-card-u {
+  background: #e3edf8;
+  border-color: #b3cfea;
+}
+.mana-tracker-card-u .mana-tracker-half:hover:not(:disabled) {
+  background: #cbe1f4;
+  color: #2c5d85;
+}
+.mana-tracker-card-b {
+  background: #e5e1dd;
+  border-color: #b5aca1;
+}
+.mana-tracker-card-b .mana-tracker-half:hover:not(:disabled) {
+  background: #d2cac2;
+  color: #3a332c;
+}
+.mana-tracker-card-r {
+  background: #f9e6e0;
+  border-color: #edb6a5;
+}
+.mana-tracker-card-r .mana-tracker-half:hover:not(:disabled) {
+  background: #f3cec0;
+  color: #9a4022;
+}
+.mana-tracker-card-g {
+  background: #e5f1de;
+  border-color: #b3d9a2;
+}
+.mana-tracker-card-g .mana-tracker-half:hover:not(:disabled) {
+  background: #cde8bf;
+  color: #3f6b2a;
+}
+.mana-tracker-card-c {
+  background: #ebeae7;
+  border-color: #c7c3ba;
+}
+.mana-tracker-card-c .mana-tracker-half:hover:not(:disabled) {
+  background: #dbd9d4;
+  color: #5c574d;
+}
+.mana-tracker-card-content {
+  position: relative;
+  pointer-events: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.mana-tracker-symbol img {
+  height: 1.6rem;
+}
+.mana-tracker-count {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.mana-tracker-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.mana-tracker-half-minus {
+  left: 0;
+}
+.mana-tracker-half-plus {
+  right: 0;
+}
+.mana-tracker-half:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.mana-tracker-half:disabled {
+  color: var(--line-strong);
+  cursor: default;
+}
+.mana-tracker-storm {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  width: 280px;
+  height: 6rem;
+}
+.mana-tracker-storm-content {
+  position: relative;
+  pointer-events: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mana-tracker-storm-count {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 2.5rem;
+  text-align: center;
+}
+.mana-tracker-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+.mana-tracker-title-row h1 {
+  margin: 0;
+}
+.mana-tracker-title-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.mana-tracker-title-actions .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+.mana-tracker-title-actions .pill:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.mana-tracker-config-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mana-tracker-config-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.mana-tracker-config-pill img {
+  height: 1em;
+}
+
+/* On phones: one full-width card per row instead of a grid, each stacked
+   vertically. The symbol and count sit side by side (there's width to spare but
+   not much height), and the left/right tap halves still span the full card. The
+   title row wraps so the two action pills don't get squashed, and the storm
+   counter grows to fill the width instead of staying a fixed size. */
+@media (max-width: 720px) {
+  .mana-tracker-title-row {
+    flex-wrap: wrap;
+  }
+  .mana-tracker-title-actions {
+    width: 100%;
+  }
+  .mana-tracker-title-actions .pill {
+    flex: 1;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+  }
+  .mana-tracker-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  .mana-tracker-card {
+    height: 4.5rem;
+  }
+  .mana-tracker-card-content {
+    flex-direction: row;
+    gap: 0.65rem;
+  }
+  .mana-tracker-symbol img {
+    height: 1.8rem;
+  }
+  .mana-tracker-count {
+    font-size: 1.6rem;
+  }
+  .mana-tracker-storm {
+    width: 100%;
+  }
+  .mana-tracker-config-list {
+    flex-direction: column;
+  }
+  .mana-tracker-config-pill {
+    justify-content: center;
+  }
+}
+
 .round-timer-dropped {
   color: var(--faint);
   font-size: 0.8rem;
