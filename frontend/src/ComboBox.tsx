@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
 
 // Shared keyboard handling for the comboboxes: arrows move the active option,
 // Enter/Escape are delegated to the caller. Returns the onKeyDown handler.
@@ -136,6 +136,7 @@ export function MultiCombobox({
   placeholder = "Add…",
   allowNew = false,
   width = 240,
+  max,
 }: {
   label: string;
   options: string[] | undefined;
@@ -144,10 +145,18 @@ export function MultiCombobox({
   placeholder?: string;
   allowNew?: boolean;
   width?: number;
+  max?: number;
 }) {
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const atMax = max != null && value.length >= max;
+
+  // The input (and its dropdown) unmounts while at max. Reset `focused` so it
+  // doesn't come back stale-open once a chip is removed and the input reappears.
+  useEffect(() => {
+    if (atMax) setFocused(false);
+  }, [atMax]);
 
   // Existing-option suggestions plus, when allowNew and the typed term is new, an
   // "Add" entry. Each option carries an isNew flag for its label.
@@ -168,6 +177,7 @@ export function MultiCombobox({
   }, [input, options, value, allowNew]);
 
   function add(name: string) {
+    if (atMax) return;
     const trimmed = name.trim();
     if (trimmed && !value.includes(trimmed)) onChange([...value, trimmed]);
     setInput("");
@@ -186,38 +196,42 @@ export function MultiCombobox({
 
   return (
     <div>
-      <div className="filter-row" style={{ alignItems: "flex-start" }}>
+      <div className="filter-row">
         <span className="filter-label">{label}</span>
-        <div style={{ position: "relative" }}>
-          <input
-            type="text"
-            className="text-input"
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setActiveIndex(0);
-            }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
-            onKeyDown={onKeyDown}
-            placeholder={placeholder}
-            style={{ width }}
-          />
-          {focused && (
-            <Menu
-              items={suggestions}
-              activeIndex={activeIndex}
-              setActiveIndex={setActiveIndex}
-              onPick={(o) => add(o.name)}
-              renderItem={(o) => (o.isNew ? `Add new: "${o.name}"` : o.name)}
-              emptyText={allowNew ? undefined : "No matches"}
-              width={width}
+        {atMax ? (
+          <span style={{ fontSize: "0.85rem", color: "#999" }}>Max {max} selected</span>
+        ) : (
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              className="text-input"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setActiveIndex(0);
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              onKeyDown={onKeyDown}
+              placeholder={placeholder}
+              style={{ width }}
             />
-          )}
-        </div>
+            {focused && (
+              <Menu
+                items={suggestions}
+                activeIndex={activeIndex}
+                setActiveIndex={setActiveIndex}
+                onPick={(o) => add(o.name)}
+                renderItem={(o) => (o.isNew ? `Add new: "${o.name}"` : o.name)}
+                emptyText={allowNew ? undefined : "No matches"}
+                width={width}
+              />
+            )}
+          </div>
+        )}
       </div>
       {value.length > 0 && (
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem", marginLeft: 84 }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem", marginLeft: 96 }}>
           {value.map((c) => (
             <span key={c} className="chip">
               {c}{" "}

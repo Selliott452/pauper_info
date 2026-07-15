@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ComboBox } from "./ComboBox";
+import { ComboBox, MultiCombobox } from "./ComboBox";
 import { Modal } from "./Modal";
 import { downloadJson } from "./download";
 import {
@@ -17,12 +17,36 @@ import {
 
 const numInput = { width: 48, padding: "0.3rem 0.4rem", textAlign: "center" as const };
 
-// Local YYYY-MM-DD for the date input's default.
-function today(): string {
-  const d = new Date();
+// Local YYYY-MM-DD.
+function toISODate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function today(): string {
+  return toISODate(new Date());
+}
+
+type Period = "all" | "day" | "week" | "month" | "year";
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: "all", label: "All time" },
+  { key: "day", label: "Past day" },
+  { key: "week", label: "Past week" },
+  { key: "month", label: "Past month" },
+  { key: "year", label: "Past year" },
+];
+
+// Earliest match date (inclusive) a given period should show, or null for "all time".
+function periodCutoff(period: Period): string | null {
+  if (period === "all") return null;
+  const d = new Date();
+  if (period === "day") d.setDate(d.getDate() - 1);
+  else if (period === "week") d.setDate(d.getDate() - 7);
+  else if (period === "month") d.setMonth(d.getMonth() - 1);
+  else if (period === "year") d.setFullYear(d.getFullYear() - 1);
+  return toISODate(d);
 }
 
 export function MatchesPage() {
@@ -34,6 +58,30 @@ export function MatchesPage() {
 
   // null = closed, "new" = create form, a match = edit that match.
   const [modal, setModal] = useState<CasualMatchView | "new" | null>(null);
+
+  const [playerFilter, setPlayerFilter] = useState<string[]>([]);
+  const [archFilter, setArchFilter] = useState<string[]>([]);
+  const [period, setPeriod] = useState<Period>("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filteredMatches = useMemo(() => {
+    const cutoff = periodCutoff(period);
+    return (matches ?? []).filter((m) => {
+      if (playerFilter.length > 0) {
+        const players = [m.player1Name, m.player2Name];
+        if (!playerFilter.every((p) => players.includes(p))) return false;
+      }
+      if (archFilter.length > 0) {
+        const archetypes = [m.player1Archetype, m.player2Archetype];
+        if (!archFilter.every((a) => archetypes.includes(a))) return false;
+      }
+      if (cutoff && (!m.date || m.date < cutoff)) return false;
+      return true;
+    });
+  }, [matches, playerFilter, archFilter, period]);
+
+  const activeFilterCount = playerFilter.length + archFilter.length + (period !== "all" ? 1 : 0);
+  const filtersActive = activeFilterCount > 0;
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["casual-leaderboard"] });
@@ -70,12 +118,54 @@ export function MatchesPage() {
 
       {matches && matches.length > 0 && (
         <>
-          <h2 style={{ marginBottom: "0.5rem" }}>Recent matches</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {matches.map((m) => (
-              <MatchRow key={m.id} match={m} onEdit={() => setModal(m)} onRemove={() => remove.mutate(m.id)} />
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+            <h2 style={{ margin: 0 }}>
+              Recent matches{" "}
+              <span style={{ color: "#999", fontWeight: 400, fontSize: "1rem" }}>
+                ({filteredMatches.length === matches.length ? matches.length : `${filteredMatches.length} of ${matches.length}`})
+              </span>
+            </h2>
+            <button className="pill push-end" onClick={() => setShowFilters((v) => !v)}>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""} {showFilters ? "▴" : "▾"}
+            </button>
           </div>
+
+          {showFilters && (
+            <div className="filter-panel">
+              <MultiCombobox label="Players" options={playerNames ?? []} value={playerFilter} onChange={setPlayerFilter} placeholder="Filter by player" max={2} />
+              <MultiCombobox label="Archetypes" options={archetypeNames} value={archFilter} onChange={setArchFilter} placeholder="Filter by archetype" max={2} />
+              <div className="filter-row">
+                <span className="filter-label">Period</span>
+                {PERIODS.map((p) => (
+                  <button key={p.key} className={`pill ${period === p.key ? "active" : ""}`} onClick={() => setPeriod(p.key)}>
+                    {p.label}
+                  </button>
+                ))}
+                {filtersActive && (
+                  <button
+                    className="pill push-end"
+                    onClick={() => {
+                      setPlayerFilter([]);
+                      setArchFilter([]);
+                      setPeriod("all");
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {filteredMatches.length === 0 ? (
+            <p style={{ color: "#666" }}>No matches for these filters.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              {filteredMatches.map((m) => (
+                <MatchRow key={m.id} match={m} onEdit={() => setModal(m)} onRemove={() => remove.mutate(m.id)} />
+              ))}
+            </div>
+          )}
         </>
       )}
 

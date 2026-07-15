@@ -605,7 +605,7 @@ th:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--faint);
-  width: 76px;
+  width: 88px;
   flex-shrink: 0;
 }
 
