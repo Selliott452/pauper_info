@@ -194,6 +194,10 @@ a:hover {
 @media (max-width: 720px) {
   .app-shell {
     flex-direction: column;
+    /* align-items controls the cross axis, which flips from vertical to
+       horizontal once the shell stacks — reset to stretch so .app-content
+       fills the viewport width instead of shrinking to its widest child. */
+    align-items: stretch;
   }
   .sidebar {
     position: sticky;
@@ -233,6 +237,28 @@ a:hover {
   }
   h1 {
     font-size: 1.5rem;
+  }
+
+  /* Landing page: top-align instead of vertically centering (avoids a big
+     empty gap above short content) and shrink the hero text. */
+  .home-page {
+    min-height: auto;
+    justify-content: flex-start;
+  }
+  .home-hero {
+    padding: 1rem 0 1.5rem;
+  }
+  .home-hero h1 {
+    font-size: 1.8rem;
+  }
+  .home-hero .page-subtitle {
+    font-size: 1rem;
+  }
+  .home-links {
+    max-width: 100%;
+  }
+  .home-link-title {
+    white-space: normal;
   }
 
 }
@@ -287,6 +313,8 @@ th:hover {
 }
 
 .home-hero {
+  width: 100%;
+  min-width: 0;
   padding: 1.5rem 0 2rem;
 }
 .home-hero h1 {
@@ -297,10 +325,15 @@ th:hover {
   margin-bottom: 0;
 }
 
+/* min-width: 0 overrides the flex item default of min-width: auto, which
+   would otherwise floor this grid's width at its track minimums (2x270px)
+   and force the whole page to overflow horizontally on narrow viewports. */
 .home-links {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 0.9rem;
+  width: 100%;
+  min-width: 0;
   max-width: 900px;
 }
 
