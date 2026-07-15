@@ -1,13 +1,22 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
 import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
 import { PlayHeatmap } from "./PlayHeatmap";
 import { ArchetypeLink } from "./ArchetypeLink";
+import { MatchModal } from "./MatchModal";
 import { pct, archetypeLabel } from "./format";
-import { fetchCasualPlayer, resolveCasualPlayer } from "./api";
+import {
+  fetchArchetypes,
+  fetchCasualPlayer,
+  fetchCasualPlayerNames,
+  resolveCasualPlayer,
+  updateCasualMatch,
+  type CasualMatchView,
+  type CreateCasualMatch,
+} from "./api";
 
 // One side of a match row: name (linked unless it's the current player), the
 // archetype in parens, and a ↗ link to the decklist. Mirrors the matches page.
@@ -102,12 +111,28 @@ function PlayerResolver({ identifier }: { identifier: string }) {
 }
 
 function PlayerDetailView({ id }: { id: number }) {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["casual-player", id], queryFn: () => fetchCasualPlayer(id) });
+  const { data: playerNames } = useQuery({ queryKey: ["casual-players"], queryFn: fetchCasualPlayerNames });
+  const { data: archetypeList } = useQuery({ queryKey: ["archetypes"], queryFn: fetchArchetypes, staleTime: Infinity });
+  const archetypeNames = archetypeList?.map((a) => a.name) ?? [];
 
   const [page, setPage] = useState(0);
   const [myArchFilter, setMyArchFilter] = useState("");
   const [oppArchFilter, setOppArchFilter] = useState("");
   const [oppFilter, setOppFilter] = useState("");
+  const [editMatch, setEditMatch] = useState<CasualMatchView | null>(null);
+
+  const save = useMutation({
+    mutationFn: (body: CreateCasualMatch) => updateCasualMatch(editMatch!.id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casual-player", id] });
+      queryClient.invalidateQueries({ queryKey: ["casual-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["casual-leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["casual-players"] });
+      setEditMatch(null);
+    },
+  });
 
   // Decorate each match with this player's perspective (their side vs the opponent's),
   // so both the filters and the rendered rows work from the same derived fields.
@@ -302,6 +327,14 @@ function PlayerDetailView({ id }: { id: number }) {
                       </strong>
                       <span className="mh-cell">{side(oppName, oppId, oppArch, oppDeck)}</span>
                       <span className="mh-cell mh-date">{m.date ?? ""}</span>
+                      <button
+                        className="mh-cell mh-edit"
+                        onClick={() => setEditMatch(m)}
+                        title="Edit match"
+                        style={{ border: "none", background: "none", cursor: "pointer", color: "#2563eb", fontSize: "0.85rem", padding: 0 }}
+                      >
+                        edit
+                      </button>
                       {m.notes && (
                         <span className="mh-cell mh-notes" style={{ gridColumn: "2 / -1" }}>
                           {m.notes}
@@ -328,6 +361,18 @@ function PlayerDetailView({ id }: { id: number }) {
                 </div>
               )}
             </>
+          )}
+
+          {editMatch && (
+            <MatchModal
+              initial={editMatch}
+              playerNames={playerNames ?? []}
+              archetypeNames={archetypeNames}
+              submitting={save.isPending}
+              error={save.isError ? (save.error as Error).message : null}
+              onClose={() => setEditMatch(null)}
+              onSubmit={(body) => save.mutate(body)}
+            />
           )}
         </>
       )}

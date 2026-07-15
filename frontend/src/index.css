@@ -267,7 +267,7 @@ a:hover {
    line up across rows. Rows use display:contents so cells join the shared grid. */
 .match-history {
   display: grid;
-  grid-template-columns: 1.1rem max-content max-content max-content max-content;
+  grid-template-columns: 1.1rem max-content max-content max-content max-content max-content;
   align-items: center;
   column-gap: 0.5rem;
   font-size: 0.9rem;
@@ -290,6 +290,10 @@ a:hover {
 }
 .match-history .mh-date {
   color: #999;
+  white-space: nowrap;
+  text-align: left;
+}
+.match-history .mh-edit {
   white-space: nowrap;
   text-align: left;
 }
