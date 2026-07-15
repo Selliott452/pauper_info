@@ -75,6 +75,14 @@ class CompetitorService(
         }
     }
 
+    // Rename a competitor. Delegates to SwissService, which also keeps every event's
+    // denormalized Player.name copies in sync.
+    @Transactional
+    fun rename(id: Int, request: UpdateCompetitorRequest): CompetitorDetail {
+        swissService.renameCompetitor(id, request.name)
+        return get(id)
+    }
+
     fun get(id: Int): CompetitorDetail {
         val competitor = competitorRepository.findById(id).orElseThrow {
             ResponseStatusException(HttpStatus.NOT_FOUND, "No such competitor")

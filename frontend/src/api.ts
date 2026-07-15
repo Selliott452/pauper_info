@@ -506,7 +506,7 @@ export function rejoinPlayer(id: number, playerId: number) {
 export function updatePlayer(
   id: number,
   playerId: number,
-  body: { archetype: string | null; deckUrl: string | null },
+  body: { name?: string; archetype: string | null; deckUrl: string | null },
 ) {
   return apiSend<TournamentDetail>("PATCH", `/api/tournaments/${id}/players/${playerId}`, body);
 }
@@ -605,6 +605,12 @@ export function createCompetitor(name: string): Promise<CompetitorSummary> {
   return apiSend("POST", `/api/competitors`, { name });
 }
 
+// Renames a competitor (their persistent career identity); the backend also syncs
+// the name copy stored on every tournament they've played in.
+export function renameCompetitor(id: number, name: string): Promise<CompetitorDetail> {
+  return apiSend("PATCH", `/api/competitors/${id}`, { name });
+}
+
 // --- Casual 1-on-1 matches (separate from tournaments and metagame) -------------
 
 export interface CasualMatchView {
@@ -677,6 +683,10 @@ export function fetchCasualPlayerNames(): Promise<string[]> {
 
 export function fetchCasualPlayer(id: number): Promise<CasualPlayerDetail> {
   return apiGet(`/api/casual/players/${id}`);
+}
+
+export function renameCasualPlayer(id: number, name: string): Promise<CasualPlayerDetail> {
+  return apiSend("PATCH", `/api/casual/players/${id}`, { name });
 }
 
 // Outcome of resolving a player identifier (numeric id, name slug, or partial name).

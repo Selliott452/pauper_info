@@ -151,16 +151,51 @@ class SwissService(
         return detail(eventId)
     }
 
-    // Record (or clear) the archetype/deck a player ran. Allowed even when complete.
+    // Record (or clear) the archetype/deck a player ran, and/or rename them. Allowed
+    // even when complete.
     @Transactional
     fun updatePlayer(eventId: Int, playerId: Int, request: UpdatePlayerRequest): TournamentDetail {
         val player = playerRepository.findById(playerId).orElseThrow {
             ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")
         }
+        request.name?.let { newName ->
+            val competitorId = player.competitorId
+            if (competitorId != null) {
+                renameCompetitor(competitorId, newName)
+            } else {
+                val trimmed = newName.trim()
+                if (trimmed.isEmpty()) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Name can't be blank")
+                player.name = trimmed
+            }
+        }
         player.archetype = request.archetype?.trim()?.takeIf { it.isNotEmpty() }
         player.deckUrl = request.deckUrl?.trim()?.takeIf { it.isNotEmpty() }
         playerRepository.save(player)
         return detail(eventId)
+    }
+
+    // Rename a competitor (their persistent career identity) and keep every event's
+    // denormalized Player.name in sync, since standings/match views read that copy
+    // rather than joining back to the competitor. Shared by the tournament roster's
+    // rename action and the competitor career page's rename action.
+    @Transactional
+    fun renameCompetitor(competitorId: Int, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Name can't be blank")
+        }
+        val competitor = competitorRepository.findById(competitorId).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such competitor")
+        }
+        val existing = competitorRepository.findFirstByNameIgnoreCase(trimmed)
+        if (existing != null && existing.id != competitor.id) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "${existing.name} already exists")
+        }
+        competitor.name = trimmed
+        competitorRepository.save(competitor)
+        val players = playerRepository.findByCompetitorId(competitorId)
+        players.forEach { it.name = trimmed }
+        playerRepository.saveAll(players)
     }
 
     @Transactional

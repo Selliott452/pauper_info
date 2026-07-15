@@ -2,6 +2,8 @@ package com.pauperinfo.casual
 
 data class CreateCasualPlayerRequest(val name: String)
 
+data class UpdateCasualPlayerRequest(val name: String)
+
 // Create a match. Players are given by name and created on the fly if new.
 data class CreateMatchRequest(
     val player1: String,

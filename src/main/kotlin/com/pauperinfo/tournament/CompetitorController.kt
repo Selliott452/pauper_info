@@ -1,6 +1,7 @@
 package com.pauperinfo.tournament
 
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -19,6 +20,10 @@ class CompetitorController(private val competitorService: CompetitorService) {
 
     @GetMapping("/{id}")
     fun detail(@PathVariable id: Int): CompetitorDetail = competitorService.get(id)
+
+    @PatchMapping("/{id}")
+    fun rename(@PathVariable id: Int, @RequestBody request: UpdateCompetitorRequest): CompetitorDetail =
+        competitorService.rename(id, request)
 
     // Resolve a numeric id, a name slug ("josh-e"), or a partial name ("josh") to a
     // competitor page, or to a list of candidates when a partial name is ambiguous.

@@ -73,6 +73,23 @@ class CasualService(
         return match.toView(mapOf(p1.id to p1.name, p2.id to p2.name))
     }
 
+    // Rename a player, rejecting a rename that collides with another existing player.
+    @Transactional
+    fun renamePlayer(id: Int, name: String): CasualPlayerDetail {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Name can't be blank")
+        val player = playerRepository.findById(id).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")
+        }
+        val existing = playerRepository.findFirstByNameIgnoreCase(trimmed)
+        if (existing != null && existing.id != player.id) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "${existing.name} already exists")
+        }
+        player.name = trimmed
+        playerRepository.save(player)
+        return playerDetail(id)
+    }
+
     @Transactional
     fun deleteMatch(matchId: Int) = matchRepository.deleteById(matchId)
 

@@ -2,6 +2,10 @@ package com.pauperinfo.tournament
 
 data class CreateCompetitorRequest(val name: String)
 
+// Rename a competitor. Applies to their persistent career identity, which cascades
+// to every event's standings/match views.
+data class UpdateCompetitorRequest(val name: String)
+
 // A competitor's career totals across every tournament they've played.
 data class CompetitorSummary(
     val id: Int,
@@ -115,8 +119,11 @@ data class TournamentSummary(
 )
 
 // A player's line in the standings, with the standard MTG tiebreakers as percents.
-// Set what a player ran in this event. Blank values clear the field.
+// Set what a player ran in this event (blank values clear the field) and/or rename
+// them. A non-null name renames their linked competitor (career identity) when
+// present, otherwise just this event's player row.
 data class UpdatePlayerRequest(
+    val name: String? = null,
     val archetype: String? = null,
     val deckUrl: String? = null,
 )

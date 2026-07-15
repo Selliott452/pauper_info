@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
 import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
 import { ArchetypeLink } from "./ArchetypeLink";
+import { RenameModal } from "./RenameModal";
 import { pct, archetypeLabel } from "./format";
-import { fetchCompetitor, resolveCompetitor, type OpponentRecord } from "./api";
+import { fetchCompetitor, renameCompetitor, resolveCompetitor, type OpponentRecord } from "./api";
 
 // The :id route param can be a numeric id ("1"), a name slug ("josh-e"), or a
 // partial name ("josh"). A number loads the page directly; anything else is sent to
@@ -79,7 +81,18 @@ function CompetitorResolver({ identifier }: { identifier: string }) {
 }
 
 function CompetitorDetailView({ id }: { id: number }) {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["competitor", id], queryFn: () => fetchCompetitor(id) });
+  const [renaming, setRenaming] = useState(false);
+  const rename = useMutation({
+    mutationFn: (name: string) => renameCompetitor(id, name),
+    onSuccess: (d) => {
+      queryClient.setQueryData(["competitor", id], d);
+      queryClient.invalidateQueries({ queryKey: ["competitors"] });
+      queryClient.invalidateQueries({ queryKey: ["tournament"] });
+      setRenaming(false);
+    },
+  });
 
   return (
     <main className="page">
@@ -88,7 +101,22 @@ function CompetitorDetailView({ id }: { id: number }) {
       {isLoading && <Loading />}
       {data && (
         <>
-          <h1 style={{ marginBottom: "0.25rem" }}>{data.name}</h1>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
+            <h1 style={{ margin: "0 0 0.25rem" }}>{data.name}</h1>
+            <button className="pill" onClick={() => setRenaming(true)}>
+              Update Name
+            </button>
+          </div>
+          {renaming && (
+            <RenameModal
+              title="Update name"
+              initial={data.name}
+              saving={rename.isPending}
+              error={rename.isError ? (rename.error as Error).message : null}
+              onSave={(name) => rename.mutate(name)}
+              onClose={() => setRenaming(false)}
+            />
+          )}
           <p style={{ color: "#555", margin: "0 0 1.5rem" }}>
             {data.events} event{data.events === 1 ? "" : "s"} · Matches {data.wins}-{data.losses}-{data.draws} (
             {pct(data.matchWinPct)}) · Games {data.gameWins}-{data.gameLosses}-{data.gameDraws} ({pct(data.gameWinPct)})

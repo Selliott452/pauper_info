@@ -7,11 +7,13 @@ import { RecordTable } from "./RecordTable";
 import { PlayHeatmap } from "./PlayHeatmap";
 import { ArchetypeLink } from "./ArchetypeLink";
 import { MatchModal } from "./MatchModal";
+import { RenameModal } from "./RenameModal";
 import { pct, archetypeLabel } from "./format";
 import {
   fetchArchetypes,
   fetchCasualPlayer,
   fetchCasualPlayerNames,
+  renameCasualPlayer,
   resolveCasualPlayer,
   updateCasualMatch,
   type CasualMatchView,
@@ -122,6 +124,7 @@ function PlayerDetailView({ id }: { id: number }) {
   const [oppArchFilter, setOppArchFilter] = useState("");
   const [oppFilter, setOppFilter] = useState("");
   const [editMatch, setEditMatch] = useState<CasualMatchView | null>(null);
+  const [renaming, setRenaming] = useState(false);
 
   const save = useMutation({
     mutationFn: (body: CreateCasualMatch) => updateCasualMatch(editMatch!.id, body),
@@ -131,6 +134,17 @@ function PlayerDetailView({ id }: { id: number }) {
       queryClient.invalidateQueries({ queryKey: ["casual-leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["casual-players"] });
       setEditMatch(null);
+    },
+  });
+
+  const rename = useMutation({
+    mutationFn: (name: string) => renameCasualPlayer(id, name),
+    onSuccess: (d) => {
+      queryClient.setQueryData(["casual-player", id], d);
+      queryClient.invalidateQueries({ queryKey: ["casual-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["casual-leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["casual-players"] });
+      setRenaming(false);
     },
   });
 
@@ -187,7 +201,22 @@ function PlayerDetailView({ id }: { id: number }) {
       {isLoading && <Loading />}
       {data && (
         <>
-          <h1 style={{ marginBottom: "0.25rem" }}>{data.name}</h1>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
+            <h1 style={{ margin: "0 0 0.25rem" }}>{data.name}</h1>
+            <button className="pill" onClick={() => setRenaming(true)}>
+              Update Name
+            </button>
+          </div>
+          {renaming && (
+            <RenameModal
+              title="Update name"
+              initial={data.name}
+              saving={rename.isPending}
+              error={rename.isError ? (rename.error as Error).message : null}
+              onSave={(name) => rename.mutate(name)}
+              onClose={() => setRenaming(false)}
+            />
+          )}
           <p style={{ color: "#555", margin: "0 0 1rem" }}>
             {data.matches} match{data.matches === 1 ? "" : "es"} · {data.wins}-{data.losses}-{data.draws} ·{" "}
             {pct(data.matchWinPct)} match win · {pct(data.gameWinPct)} game win

@@ -3,6 +3,7 @@ package com.pauperinfo.casual
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -27,6 +28,10 @@ class CasualController(private val casualService: CasualService) {
 
     @GetMapping("/players/{id}")
     fun playerDetail(@PathVariable id: Int): CasualPlayerDetail = casualService.playerDetail(id)
+
+    @PatchMapping("/players/{id}")
+    fun renamePlayer(@PathVariable id: Int, @RequestBody request: UpdateCasualPlayerRequest): CasualPlayerDetail =
+        casualService.renamePlayer(id, request.name)
 
     // Resolve a numeric id, a name slug ("josh-e"), or a partial name ("josh") to a
     // player page, or to a list of candidates when a partial name is ambiguous.

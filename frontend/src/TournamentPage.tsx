@@ -5,6 +5,7 @@ import { BackLink } from "./BackLink";
 import { ComboBox } from "./ComboBox";
 import { Modal } from "./Modal";
 import { Loading, ErrorText } from "./QueryState";
+import { RenameModal } from "./RenameModal";
 import { pct } from "./format";
 import { useConfirm } from "./useConfirm";
 import { downloadJson, slugify } from "./download";
@@ -23,6 +24,7 @@ import {
   pairRound,
   rejoinPlayer,
   removePlayer,
+  renameCompetitor,
   reopenTournament,
   reportResult,
   roundTimer,
@@ -67,6 +69,14 @@ export function TournamentPage() {
   const rejoin = useMutation({ mutationFn: (playerId: number) => rejoinPlayer(id, playerId), onSuccess: setData });
   const addPlayerM = useMutation({ mutationFn: (name: string) => addPlayer(id, name), onSuccess: setData });
   const removePlayerM = useMutation({ mutationFn: (playerId: number) => removePlayer(id, playerId), onSuccess: setData });
+  const renamePlayerM = useMutation({
+    mutationFn: (v: { competitorId: number; name: string }) => renameCompetitor(v.competitorId, v.name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournament", id] });
+      queryClient.invalidateQueries({ queryKey: ["competitors"] });
+      queryClient.invalidateQueries({ queryKey: ["competitor"] });
+    },
+  });
   const newRound = useMutation({ mutationFn: () => addRound(id), onSuccess: setData });
   const addPairing = useMutation({
     mutationFn: (v: { roundId: number; player1Id: number; player2Id: number | null }) =>
@@ -175,6 +185,9 @@ export function TournamentPage() {
           addingPlayer={addPlayerM.isPending}
           addPlayerError={addPlayerM.isError ? (addPlayerM.error as Error).message : null}
           onRemovePlayer={(playerId) => removePlayerM.mutate(playerId)}
+          onRenamePlayer={(competitorId, name) => renamePlayerM.mutate({ competitorId, name })}
+          renamingPlayer={renamePlayerM.isPending}
+          renamePlayerError={renamePlayerM.isError ? (renamePlayerM.error as Error).message : null}
         />
       )}
 
@@ -324,6 +337,9 @@ function EditTournamentModal({
   addingPlayer,
   addPlayerError,
   onRemovePlayer,
+  onRenamePlayer,
+  renamingPlayer,
+  renamePlayerError,
 }: {
   name: string;
   date: string;
@@ -341,6 +357,9 @@ function EditTournamentModal({
   addingPlayer: boolean;
   addPlayerError: string | null;
   onRemovePlayer: (playerId: number) => void;
+  onRenamePlayer: (competitorId: number, name: string) => void;
+  renamingPlayer: boolean;
+  renamePlayerError: string | null;
 }) {
   const [newPlayer, setNewPlayer] = useState("");
 
@@ -396,7 +415,14 @@ function EditTournamentModal({
       <h4 style={{ margin: "0 0 0.5rem" }}>Players</h4>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", marginBottom: "0.75rem" }}>
         {players.map((p) => (
-          <PlayerRow key={p.playerId} player={p} onRemove={() => onRemovePlayer(p.playerId)} />
+          <PlayerRow
+            key={p.playerId}
+            player={p}
+            onRemove={() => onRemovePlayer(p.playerId)}
+            onRename={p.competitorId != null ? (name) => onRenamePlayer(p.competitorId!, name) : undefined}
+            renaming={renamingPlayer}
+            renameError={renamePlayerError}
+          />
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -422,8 +448,24 @@ function EditTournamentModal({
   );
 }
 
-// One roster row in the edit dialog, with its own remove-confirmation.
-function PlayerRow({ player, onRemove }: { player: PlayerStanding; onRemove: () => void }) {
+// One roster row in the edit dialog, with its own remove-confirmation and,
+// when the player is linked to a competitor, a rename action. Renaming here
+// renames their persistent competitor identity, so it applies everywhere they've
+// played, not just this tournament.
+function PlayerRow({
+  player,
+  onRemove,
+  onRename,
+  renaming,
+  renameError,
+}: {
+  player: PlayerStanding;
+  onRemove: () => void;
+  onRename?: (name: string) => void;
+  renaming: boolean;
+  renameError: string | null;
+}) {
+  const [showRename, setShowRename] = useState(false);
   const confirmRemove = useConfirm(onRemove, {
     title: `Remove ${player.name}?`,
     message: "This deletes them from the tournament along with any matches they've already played. Use Drop instead to keep their record but stop pairing them.",
@@ -436,10 +478,30 @@ function PlayerRow({ player, onRemove }: { player: PlayerStanding; onRemove: () 
         {player.name}
         {player.dropped && <span style={{ color: "#999", fontSize: "0.8rem" }}> (dropped)</span>}
       </span>
-      <button className="pill" onClick={confirmRemove.onClick}>
-        Remove
-      </button>
+      <div style={{ display: "flex", gap: "0.4rem" }}>
+        {onRename && (
+          <button className="pill" onClick={() => setShowRename(true)}>
+            Update Name
+          </button>
+        )}
+        <button className="pill" onClick={confirmRemove.onClick}>
+          Remove
+        </button>
+      </div>
       {confirmRemove.dialog}
+      {showRename && onRename && (
+        <RenameModal
+          title="Update name"
+          initial={player.name}
+          saving={renaming}
+          error={renameError}
+          onSave={(name) => {
+            onRename(name);
+            setShowRename(false);
+          }}
+          onClose={() => setShowRename(false)}
+        />
+      )}
     </div>
   );
 }
