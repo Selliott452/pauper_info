@@ -76,6 +76,14 @@ class TournamentController(private val swissService: SwissService) {
         @RequestBody request: ReportResultRequest,
     ): TournamentDetail = swissService.reportResult(id, matchId, request)
 
+    @PostMapping("/{id}/players")
+    fun addPlayer(@PathVariable id: Int, @RequestBody request: AddPlayerRequest): TournamentDetail =
+        swissService.addPlayer(id, request.name)
+
+    @DeleteMapping("/{id}/players/{playerId}")
+    fun removePlayer(@PathVariable id: Int, @PathVariable playerId: Int): TournamentDetail =
+        swissService.removePlayer(id, playerId)
+
     @PostMapping("/{id}/players/{playerId}/drop")
     fun drop(@PathVariable id: Int, @PathVariable playerId: Int): TournamentDetail =
         swissService.dropPlayer(id, playerId)

@@ -487,6 +487,14 @@ export function reportResult(
   return apiSend<TournamentDetail>("POST", `/api/tournaments/${id}/matches/${matchId}`, body);
 }
 
+export function addPlayer(id: number, name: string) {
+  return apiSend<TournamentDetail>("POST", `/api/tournaments/${id}/players`, { name });
+}
+
+export function removePlayer(id: number, playerId: number) {
+  return apiSend<TournamentDetail>("DELETE", `/api/tournaments/${id}/players/${playerId}`);
+}
+
 export function dropPlayer(id: number, playerId: number) {
   return apiSend<TournamentDetail>("POST", `/api/tournaments/${id}/players/${playerId}/drop`);
 }

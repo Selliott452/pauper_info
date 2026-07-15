@@ -88,6 +88,10 @@ data class UpdateTournamentRequest(
     val roundMinutes: Int? = null,
 )
 
+// Add a player to an in-progress tournament, by name (resolved/created like the
+// initial player list on create).
+data class AddPlayerRequest(val name: String)
+
 // Manually add a pairing to a round. player2Id null creates a bye for player1.
 data class AddMatchRequest(
     val player1Id: Int,

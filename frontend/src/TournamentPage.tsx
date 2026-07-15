@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
+import { ComboBox } from "./ComboBox";
 import { Modal } from "./Modal";
 import { Loading, ErrorText } from "./QueryState";
 import { pct } from "./format";
@@ -9,16 +10,19 @@ import { useConfirm } from "./useConfirm";
 import { downloadJson, slugify } from "./download";
 import {
   addMatch,
+  addPlayer,
   addRound,
   completeTournament,
   deleteMatch,
   deleteRound,
   deleteTournament,
   dropPlayer,
+  fetchCompetitors,
   fetchTournament,
   fetchArchetypes,
   pairRound,
   rejoinPlayer,
+  removePlayer,
   reopenTournament,
   reportResult,
   roundTimer,
@@ -47,6 +51,8 @@ export function TournamentPage() {
   });
   const { data: archetypeList } = useQuery({ queryKey: ["archetypes"], queryFn: fetchArchetypes, staleTime: Infinity });
   const archetypeNames = archetypeList?.map((a) => a.name) ?? [];
+  const { data: competitors } = useQuery({ queryKey: ["competitors"], queryFn: fetchCompetitors });
+  const competitorNames = competitors?.map((c) => c.name) ?? [];
 
   // Mutations return the updated tournament; write it straight into the cache.
   const setData = (d: TournamentDetail) => queryClient.setQueryData(["tournament", id], d);
@@ -59,6 +65,8 @@ export function TournamentPage() {
   });
   const drop = useMutation({ mutationFn: (playerId: number) => dropPlayer(id, playerId), onSuccess: setData });
   const rejoin = useMutation({ mutationFn: (playerId: number) => rejoinPlayer(id, playerId), onSuccess: setData });
+  const addPlayerM = useMutation({ mutationFn: (name: string) => addPlayer(id, name), onSuccess: setData });
+  const removePlayerM = useMutation({ mutationFn: (playerId: number) => removePlayer(id, playerId), onSuccess: setData });
   const newRound = useMutation({ mutationFn: () => addRound(id), onSuccess: setData });
   const addPairing = useMutation({
     mutationFn: (v: { roundId: number; player1Id: number; player2Id: number | null }) =>
@@ -129,53 +137,45 @@ export function TournamentPage() {
     <main className="page">
       <BackLink />
 
-      {editing ? (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", margin: "0.5rem 0" }}>
-          <input
-            type="text"
-            className="text-input"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            placeholder="Tournament name"
-            style={{ width: 260 }}
-          />
-          <input type="date" className="text-input" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-          <input
-            type="number"
-            min={0}
-            className="text-input"
-            value={editRoundMinutes}
-            onChange={(e) => setEditRoundMinutes(e.target.value)}
-            placeholder="round mins"
-            style={{ width: 110 }}
-          />
-          <button className="pill active" disabled={!editName.trim() || update.isPending} onClick={() => update.mutate()}>
-            Save
-          </button>
-          <button className="pill" onClick={() => setEditing(false)}>
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
-          <h1 style={{ margin: "0.5rem 0" }}>{data.name}</h1>
-          <span style={{ color: "#666" }}>
-            {data.date ? `${data.date} · ` : ""}
-            {data.status} · {data.currentRound} round{data.currentRound === 1 ? "" : "s"}
-            {data.roundMinutes ? ` · ${data.roundMinutes} min rounds` : ""}
-          </span>
-          <button
-            className="pill"
-            onClick={() => {
-              setEditName(data.name);
-              setEditDate(data.date ?? "");
-              setEditRoundMinutes(data.roundMinutes ? String(data.roundMinutes) : "");
-              setEditing(true);
-            }}
-          >
-            Edit
-          </button>
-        </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", flexWrap: "wrap" }}>
+        <h1 style={{ margin: "0.5rem 0" }}>{data.name}</h1>
+        <span style={{ color: "#666" }}>
+          {data.date ? `${data.date} · ` : ""}
+          {data.status} · {data.currentRound} round{data.currentRound === 1 ? "" : "s"}
+          {data.roundMinutes ? ` · ${data.roundMinutes} min rounds` : ""}
+        </span>
+        <button
+          className="pill"
+          onClick={() => {
+            setEditName(data.name);
+            setEditDate(data.date ?? "");
+            setEditRoundMinutes(data.roundMinutes ? String(data.roundMinutes) : "");
+            setEditing(true);
+          }}
+        >
+          Edit
+        </button>
+      </div>
+
+      {editing && (
+        <EditTournamentModal
+          name={editName}
+          date={editDate}
+          roundMinutes={editRoundMinutes}
+          onNameChange={setEditName}
+          onDateChange={setEditDate}
+          onRoundMinutesChange={setEditRoundMinutes}
+          onSave={() => update.mutate()}
+          saving={update.isPending}
+          saveError={update.isError ? (update.error as Error).message : null}
+          onClose={() => setEditing(false)}
+          players={data.standings}
+          competitorNames={competitorNames}
+          onAddPlayer={(name) => addPlayerM.mutate(name)}
+          addingPlayer={addPlayerM.isPending}
+          addPlayerError={addPlayerM.isError ? (addPlayerM.error as Error).message : null}
+          onRemovePlayer={(playerId) => removePlayerM.mutate(playerId)}
+        />
       )}
 
       {data.status === "COMPLETE" && data.standings.length > 0 && (
@@ -300,6 +300,147 @@ export function TournamentPage() {
         />
       ))}
     </main>
+  );
+}
+
+// Dialog for the tournament's name/date/round length plus its player roster.
+// Adding resolves/creates a competitor by name (same as tournament creation);
+// removing hard-deletes the player and any matches they're already in, unlike
+// Drop (which freezes their record so it survives in standings/history).
+function EditTournamentModal({
+  name,
+  date,
+  roundMinutes,
+  onNameChange,
+  onDateChange,
+  onRoundMinutesChange,
+  onSave,
+  saving,
+  saveError,
+  onClose,
+  players,
+  competitorNames,
+  onAddPlayer,
+  addingPlayer,
+  addPlayerError,
+  onRemovePlayer,
+}: {
+  name: string;
+  date: string;
+  roundMinutes: string;
+  onNameChange: (v: string) => void;
+  onDateChange: (v: string) => void;
+  onRoundMinutesChange: (v: string) => void;
+  onSave: () => void;
+  saving: boolean;
+  saveError: string | null;
+  onClose: () => void;
+  players: PlayerStanding[];
+  competitorNames: string[];
+  onAddPlayer: (name: string) => void;
+  addingPlayer: boolean;
+  addPlayerError: string | null;
+  onRemovePlayer: (playerId: number) => void;
+}) {
+  const [newPlayer, setNewPlayer] = useState("");
+
+  const label = { display: "block", fontSize: "0.85rem", color: "#555", marginBottom: "1rem" } as const;
+  const input = { display: "block", width: "100%", marginTop: "0.25rem", boxSizing: "border-box" as const };
+
+  function addPlayer() {
+    const trimmed = newPlayer.trim();
+    if (!trimmed) return;
+    onAddPlayer(trimmed);
+    setNewPlayer("");
+  }
+
+  return (
+    <Modal width={440} onClose={onClose}>
+      <h3 style={{ marginTop: 0 }}>Edit tournament</h3>
+      <label style={label}>
+        Name
+        <input
+          type="text"
+          className="text-input"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="Tournament name"
+          style={input}
+        />
+      </label>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <label style={{ ...label, flex: 1 }}>
+          Date
+          <input type="date" className="text-input" value={date} onChange={(e) => onDateChange(e.target.value)} style={input} />
+        </label>
+        <label style={{ ...label, flex: 1 }}>
+          Round length (mins)
+          <input
+            type="number"
+            min={0}
+            className="text-input"
+            value={roundMinutes}
+            onChange={(e) => onRoundMinutesChange(e.target.value)}
+            placeholder="none"
+            style={input}
+          />
+        </label>
+      </div>
+      {saveError && <ErrorText message={saveError} />}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginBottom: "1.25rem" }}>
+        <button className="pill active" disabled={!name.trim() || saving} onClick={onSave}>
+          Save
+        </button>
+      </div>
+
+      <h4 style={{ margin: "0 0 0.5rem" }}>Players</h4>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", marginBottom: "0.75rem" }}>
+        {players.map((p) => (
+          <PlayerRow key={p.playerId} player={p} onRemove={() => onRemovePlayer(p.playerId)} />
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <ComboBox
+          value={newPlayer}
+          onChange={setNewPlayer}
+          options={competitorNames}
+          placeholder="Add a player…"
+          block
+        />
+        <button className="pill" disabled={!newPlayer.trim() || addingPlayer} onClick={addPlayer}>
+          Add
+        </button>
+      </div>
+      {addPlayerError && <ErrorText message={addPlayerError} />}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.25rem" }}>
+        <button className="pill" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// One roster row in the edit dialog, with its own remove-confirmation.
+function PlayerRow({ player, onRemove }: { player: PlayerStanding; onRemove: () => void }) {
+  const confirmRemove = useConfirm(onRemove, {
+    title: `Remove ${player.name}?`,
+    message: "This deletes them from the tournament along with any matches they've already played. Use Drop instead to keep their record but stop pairing them.",
+    confirmLabel: "Remove player",
+  });
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.5rem", border: "1px solid #ececec", borderRadius: 6 }}>
+      <span>
+        {player.name}
+        {player.dropped && <span style={{ color: "#999", fontSize: "0.8rem" }}> (dropped)</span>}
+      </span>
+      <button className="pill" onClick={confirmRemove.onClick}>
+        Remove
+      </button>
+      {confirmRemove.dialog}
+    </div>
   );
 }
 

@@ -117,6 +117,40 @@ class SwissService(
         return detail(eventId)
     }
 
+    // Add a player mid-tournament (resolve/create their competitor, same as on create).
+    @Transactional
+    fun addPlayer(eventId: Int, name: String): TournamentDetail {
+        requireActive(eventId)
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Player name can't be blank")
+        }
+        val competitor = competitorRepository.findFirstByNameIgnoreCase(trimmed)
+            ?: competitorRepository.save(Competitor(name = trimmed))
+        val alreadyIn = playerRepository.findByEventId(eventId).any { it.competitorId == competitor.id }
+        if (alreadyIn) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "${competitor.name} is already in this tournament")
+        }
+        playerRepository.save(Player(eventId = eventId, competitorId = competitor.id, name = competitor.name))
+        return detail(eventId)
+    }
+
+    // Fully removes a player (e.g. added by mistake), deleting any matches they're
+    // already in - unlike drop, this erases their record rather than freezing it.
+    @Transactional
+    fun removePlayer(eventId: Int, playerId: Int): TournamentDetail {
+        requireActive(eventId)
+        val player = playerRepository.findById(playerId).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "No such player")
+        }
+        if (player.eventId != eventId) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Player is not in this tournament")
+        }
+        matchRepository.deleteAll(matchRepository.findByPlayerIds(listOf(playerId)))
+        playerRepository.delete(player)
+        return detail(eventId)
+    }
+
     // Record (or clear) the archetype/deck a player ran. Allowed even when complete.
     @Transactional
     fun updatePlayer(eventId: Int, playerId: Int, request: UpdatePlayerRequest): TournamentDetail {
