@@ -613,6 +613,7 @@ export interface CasualMatchView {
   player1DeckUrl: string | null;
   player2DeckUrl: string | null;
   date: string | null;
+  notes: string | null;
 }
 
 export interface CasualPlayerSummary {
@@ -651,6 +652,7 @@ export interface CreateCasualMatch {
   player1DeckUrl?: string | null;
   player2DeckUrl?: string | null;
   date?: string | null;
+  notes?: string | null;
 }
 
 export function fetchCasualLeaderboard(): Promise<CasualPlayerSummary[]> {

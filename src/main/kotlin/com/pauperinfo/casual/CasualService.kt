@@ -41,6 +41,7 @@ class CasualService(
                 player1DeckUrl = request.player1DeckUrl?.trim()?.takeIf { it.isNotEmpty() },
                 player2DeckUrl = request.player2DeckUrl?.trim()?.takeIf { it.isNotEmpty() },
                 playedOn = request.date?.trim()?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) },
+                notes = request.notes?.trim()?.takeIf { it.isNotEmpty() },
             ),
         )
         val names = mapOf(p1.id to p1.name, p2.id to p2.name)
@@ -67,6 +68,7 @@ class CasualService(
         match.player1DeckUrl = request.player1DeckUrl?.trim()?.takeIf { it.isNotEmpty() }
         match.player2DeckUrl = request.player2DeckUrl?.trim()?.takeIf { it.isNotEmpty() }
         match.playedOn = request.date?.trim()?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
+        match.notes = request.notes?.trim()?.takeIf { it.isNotEmpty() }
         matchRepository.save(match)
         return match.toView(mapOf(p1.id to p1.name, p2.id to p2.name))
     }
@@ -236,5 +238,6 @@ class CasualService(
         player1DeckUrl = player1DeckUrl,
         player2DeckUrl = player2DeckUrl,
         date = playedOn?.toString(),
+        notes = notes,
     )
 }

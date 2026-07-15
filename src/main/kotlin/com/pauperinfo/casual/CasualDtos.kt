@@ -14,6 +14,7 @@ data class CreateMatchRequest(
     val player1DeckUrl: String? = null,
     val player2DeckUrl: String? = null,
     val date: String? = null,
+    val notes: String? = null,
 )
 
 data class CasualMatchView(
@@ -30,6 +31,7 @@ data class CasualMatchView(
     val player1DeckUrl: String?,
     val player2DeckUrl: String?,
     val date: String?,
+    val notes: String?,
 )
 
 // Leaderboard line: a player's overall casual record.

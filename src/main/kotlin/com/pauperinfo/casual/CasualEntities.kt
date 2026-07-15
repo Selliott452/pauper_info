@@ -56,6 +56,8 @@ class CasualMatch(
     @Column(name = "played_on")
     var playedOn: LocalDate? = null,
 
+    var notes: String? = null,
+
     @Column(name = "created_at")
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 )

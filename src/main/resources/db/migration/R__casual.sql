@@ -22,8 +22,11 @@ CREATE TABLE IF NOT EXISTS casual.match (
     player1_deck_url  TEXT,
     player2_deck_url  TEXT,
     played_on         DATE,
+    notes             TEXT,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE casual.match ADD COLUMN IF NOT EXISTS notes TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_casual_match_p1 ON casual.match (player1_id);
 CREATE INDEX IF NOT EXISTS idx_casual_match_p2 ON casual.match (player2_id);

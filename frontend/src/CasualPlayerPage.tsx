@@ -302,6 +302,11 @@ function PlayerDetailView({ id }: { id: number }) {
                       </strong>
                       <span className="mh-cell">{side(oppName, oppId, oppArch, oppDeck)}</span>
                       <span className="mh-cell mh-date">{m.date ?? ""}</span>
+                      {m.notes && (
+                        <span className="mh-cell mh-notes" style={{ gridColumn: "2 / -1" }}>
+                          {m.notes}
+                        </span>
+                      )}
                     </div>
                   );
                 })}

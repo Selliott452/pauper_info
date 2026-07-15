@@ -293,6 +293,14 @@ a:hover {
   white-space: nowrap;
   text-align: left;
 }
+.match-history .mh-notes {
+  color: #888;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  padding-top: 0;
+  padding-bottom: 0.5rem;
+  border-top: none !important;
+}
 
 table {
   font-size: 0.95rem;
@@ -925,6 +933,10 @@ a.pill {
   .match-history .mh-date {
     width: 100%;
     text-align: left;
+  }
+  .match-history .mh-notes {
+    width: 100%;
+    padding-bottom: 0;
   }
 }
 

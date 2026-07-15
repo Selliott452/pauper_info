@@ -211,6 +211,7 @@ function NewMatchModal({
   const [p1deck, setP1deck] = useState(initial?.player1DeckUrl ?? "");
   const [p2deck, setP2deck] = useState(initial?.player2DeckUrl ?? "");
   const [date, setDate] = useState(initial?.date ?? today());
+  const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const valid = p1.trim() && p2.trim() && p1.trim().toLowerCase() !== p2.trim().toLowerCase() && (p1w !== "" || p2w !== "");
 
@@ -261,6 +262,15 @@ function NewMatchModal({
           </label>
         </div>
 
+        <textarea
+          className="text-input"
+          placeholder="Notes (optional)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          style={{ ...field, resize: "vertical" }}
+        />
+
         {error && <p style={{ color: "crimson", margin: "0 0 0.75rem" }}>{error}</p>}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
@@ -283,6 +293,7 @@ function NewMatchModal({
                 player1DeckUrl: p1deck || null,
                 player2DeckUrl: p2deck || null,
                 date: date || null,
+                notes: notes || null,
               })
             }
           >
@@ -309,27 +320,28 @@ function MatchRow({ match: m, onEdit, onRemove }: { match: CasualMatchView; onEd
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.5rem",
         padding: "0.4rem 0.75rem",
         border: "1px solid #ececec",
         borderRadius: 8,
-        flexWrap: "wrap",
       }}
     >
-      <span style={{ flex: "1 1 200px" }}>
-        {side(m.player1Name, m.player1Id, m.player1Archetype, m.player1DeckUrl)}{" "}
-        <strong style={{ margin: "0 4px" }}>{score}</strong>{" "}
-        {side(m.player2Name, m.player2Id, m.player2Archetype, m.player2DeckUrl)}
-      </span>
-      {m.date && <span style={{ color: "#999", fontSize: "0.85rem" }}>{m.date}</span>}
-      <button onClick={onEdit} title="Edit match" style={{ border: "none", background: "none", cursor: "pointer", color: "#2563eb", fontSize: "0.85rem" }}>
-        edit
-      </button>
-      <button onClick={onRemove} title="Delete match" style={{ border: "none", background: "none", cursor: "pointer", color: "#999" }}>
-        ✕
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+        <span style={{ flex: "1 1 200px" }}>
+          {side(m.player1Name, m.player1Id, m.player1Archetype, m.player1DeckUrl)}{" "}
+          <strong style={{ margin: "0 4px" }}>{score}</strong>{" "}
+          {side(m.player2Name, m.player2Id, m.player2Archetype, m.player2DeckUrl)}
+        </span>
+        {m.date && <span style={{ color: "#999", fontSize: "0.85rem" }}>{m.date}</span>}
+        <button onClick={onEdit} title="Edit match" style={{ border: "none", background: "none", cursor: "pointer", color: "#2563eb", fontSize: "0.85rem" }}>
+          edit
+        </button>
+        <button onClick={onRemove} title="Delete match" style={{ border: "none", background: "none", cursor: "pointer", color: "#999" }}>
+          ✕
+        </button>
+      </div>
+      {m.notes && (
+        <div style={{ marginTop: "0.3rem", color: "#666", fontSize: "0.85rem", whiteSpace: "pre-wrap" }}>{m.notes}</div>
+      )}
     </div>
   );
 }
