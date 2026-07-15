@@ -742,6 +742,30 @@ a.pill {
   color: #fff;
 }
 
+.heatmap-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-cell,
+.heatmap-month-label {
+  width: 12px;
+  flex: 0 0 12px;
+}
+
+.heatmap-cell {
+  height: 12px;
+  border-radius: 3px;
+}
+
+.heatmap-month-label {
+  font-size: 10px;
+  color: var(--faint);
+  overflow: visible;
+  white-space: nowrap;
+}
+
 .stat-tile-link {
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
 }
@@ -760,6 +784,12 @@ a.pill {
   /* Tighten page chrome (defined here so it wins over the base .page padding). */
   .page {
     padding: 1rem;
+  }
+
+  /* The play-activity calendar doesn't fit usefully on narrow screens - hide it
+     rather than force horizontal scrolling. */
+  .heatmap-panel {
+    display: none;
   }
 
   /* On mobile, don't right-align toolbar items - let them wrap normally so they

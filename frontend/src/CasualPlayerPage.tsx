@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { BackLink } from "./BackLink";
 import { Loading } from "./QueryState";
 import { RecordTable } from "./RecordTable";
+import { PlayHeatmap } from "./PlayHeatmap";
 import { ArchetypeLink } from "./ArchetypeLink";
 import { pct, archetypeLabel } from "./format";
 import { fetchCasualPlayer, resolveCasualPlayer } from "./api";
@@ -166,6 +167,8 @@ function PlayerDetailView({ id }: { id: number }) {
             {data.matches} match{data.matches === 1 ? "" : "es"} · {data.wins}-{data.losses}-{data.draws} ·{" "}
             {pct(data.matchWinPct)} match win · {pct(data.gameWinPct)} game win
           </p>
+
+          <PlayHeatmap dates={rows.map((r) => r.m.date)} />
 
           <RecordTable
             heading="Archetypes played"
