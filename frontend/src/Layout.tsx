@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { IconAffiliate, IconArrowsShuffle, IconCards, IconChartPie, IconDroplet, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
+import { IconAffiliate, IconArrowsShuffle, IconCards, IconChartPie, IconDroplet, IconHeart, IconLayoutGrid, IconMenu2, IconScale, IconSwords, IconTrophy, IconUsers, IconX } from "@tabler/icons-react";
 
 function navClass(active: boolean): string {
   return active ? "nav-item active" : "nav-item";
@@ -24,6 +24,7 @@ export function Layout() {
   const onCasualMetagame = pathname === "/matches/metagame";
   const onMatches = pathname === "/matches";
   const onManaTracker = pathname === "/tools/mana-tracker";
+  const onLifeTracker = pathname === "/tools/life-tracker";
 
   return (
     <div className="app-shell">
@@ -97,6 +98,10 @@ export function Layout() {
           <Link to="/tools/mana-tracker" className={navClass(onManaTracker)}>
             <IconDroplet size={18} stroke={2} />
             Mana tracker
+          </Link>
+          <Link to="/tools/life-tracker" className={navClass(onLifeTracker)}>
+            <IconHeart size={18} stroke={2} />
+            Life tracker
           </Link>
         </div>
       </nav>

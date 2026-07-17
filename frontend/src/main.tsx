@@ -23,6 +23,7 @@ import { MatchesPage } from "./MatchesPage.tsx";
 import { CasualPlayersPage } from "./CasualPlayersPage.tsx";
 import { CasualPlayerPage } from "./CasualPlayerPage.tsx";
 import { ManaTrackerPage } from "./ManaTrackerPage.tsx";
+import { LifeTrackerPage } from "./LifeTrackerPage.tsx";
 import { Layout } from "./Layout.tsx";
 import { KeepAlive } from "./KeepAlive.tsx";
 import "./index.css";
@@ -59,6 +60,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/tools/mana-tracker" element={<ManaTrackerPage />} />
           </Route>
           <Route path="/tournaments/:id/round/:roundNumber" element={<RoundTimerPage />} />
+          <Route path="/tools/life-tracker" element={<LifeTrackerPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

@@ -1302,3 +1302,153 @@ a.pill {
   color: var(--faint);
   font-size: 0.8rem;
 }
+
+/* Life tracker: fills the viewport with two opposed halves for a phone sitting
+   flat between both players. dvh keeps it exact when mobile browser chrome
+   collapses; touch-action/user-select stop taps double-firing as zoom or
+   selecting the totals. */
+.life-tracker-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  height: 100dvh;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Each half hosts a padded, colored "card" so the two sides feel like a pair of
+   cards facing each other. The half itself owns the rotation for the far
+   player, and the inner card owns the color/border/shadow. */
+.life-tracker-half {
+  position: relative;
+  flex: 1;
+  display: flex;
+  padding: 0.6rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  --card-bg: var(--surface);
+  --card-bg-strong: var(--surface-alt);
+  --card-border: var(--line-strong);
+  --card-ink: var(--ink);
+  --card-accent: var(--accent-ink);
+}
+.life-tracker-half.flipped {
+  transform: rotate(180deg);
+}
+.life-tracker-half-red {
+  --card-bg: #fbe9e2;
+  --card-bg-strong: #f5cfc1;
+  --card-border: #e2967f;
+  --card-ink: #6b2612;
+  --card-accent: #a83b1a;
+}
+.life-tracker-half-blue {
+  --card-bg: #e2ecf8;
+  --card-bg-strong: #c8dbef;
+  --card-border: #7fa4cf;
+  --card-ink: #1e365a;
+  --card-accent: #1f5da8;
+}
+.life-tracker-half.dead {
+  --card-bg: #efc7bb;
+  --card-bg-strong: #e6a996;
+  --card-border: #b34d2b;
+  --card-ink: #611c07;
+  --card-accent: #8a2810;
+}
+.life-tracker-card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  border-radius: 18px;
+  background: linear-gradient(145deg, var(--card-bg), var(--card-bg-strong));
+  border: 2px solid var(--card-border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+/* Winner glow: bright yellow border and halo so it's obvious across a table,
+   plus a gentle pulse. Fades on its own after 5s when the wrapper drops the
+   class. */
+.life-tracker-half.highlighted .life-tracker-card {
+  border-color: #f5c518;
+  box-shadow:
+    0 0 0 4px rgba(245, 197, 24, 0.55),
+    0 10px 32px rgba(245, 197, 24, 0.5);
+  animation: life-tracker-pulse 1.4s ease-in-out infinite;
+}
+@keyframes life-tracker-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+.life-tracker-zone {
+  flex: 1;
+  border: 0;
+  background: none;
+  color: color-mix(in srgb, var(--card-ink) 55%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 1.6rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.life-tracker-zone:last-of-type {
+  justify-content: flex-end;
+}
+.life-tracker-zone:active {
+  background: color-mix(in srgb, var(--card-accent) 12%, transparent);
+}
+.life-tracker-total {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  pointer-events: none;
+  text-align: center;
+  font-family: "Spectral", Georgia, serif;
+  font-size: clamp(4rem, 22vh, 8rem);
+  line-height: 1;
+  font-weight: 600;
+  color: var(--card-ink);
+  text-shadow: 0 2px 0 color-mix(in srgb, var(--card-accent) 18%, transparent);
+}
+.life-tracker-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.life-tracker-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.life-tracker-action:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-line);
+}
+.life-tracker-action.primary {
+  background: var(--accent);
+  color: #fffdf8;
+  border-color: var(--accent-ink);
+}
+.life-tracker-action.primary:hover {
+  background: var(--accent-ink);
+  color: #fffdf8;
+}
