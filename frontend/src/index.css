@@ -1227,15 +1227,19 @@ a.pill {
 }
 .mana-tracker-title-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
-.mana-tracker-title-actions .pill {
+.mana-tracker-title-action {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  white-space: nowrap;
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
 }
-.mana-tracker-title-actions .pill:disabled {
+.mana-tracker-title-action-wide {
+  padding-left: 1.4rem;
+  padding-right: 1.4rem;
+}
+.mana-tracker-title-action:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -1256,20 +1260,8 @@ a.pill {
 /* On phones: one full-width card per row instead of a grid, each stacked
    vertically. The symbol and count sit side by side (there's width to spare but
    not much height), and the left/right tap halves still span the full card. The
-   title row wraps so the two action pills don't get squashed, and the storm
-   counter grows to fill the width instead of staying a fixed size. */
+   storm counter grows to fill the width instead of staying a fixed size. */
 @media (max-width: 720px) {
-  .mana-tracker-title-row {
-    flex-wrap: wrap;
-  }
-  .mana-tracker-title-actions {
-    width: 100%;
-  }
-  .mana-tracker-title-actions .pill {
-    flex: 1;
-    justify-content: center;
-    padding: 0.5rem 0.75rem;
-  }
   .mana-tracker-grid {
     grid-template-columns: 1fr;
     gap: 0.6rem;

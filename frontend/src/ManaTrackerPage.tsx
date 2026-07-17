@@ -64,11 +64,22 @@ export function ManaTrackerPage() {
       <div className="mana-tracker-title-row">
         <h1>Mana Tracker</h1>
         <div className="mana-tracker-title-actions">
-          <button className="pill" onClick={resetAll} disabled={nothingToReset}>
-            <IconRefresh size={14} stroke={2} /> Reset
+          <button
+            className="pill mana-tracker-title-action mana-tracker-title-action-wide"
+            onClick={resetAll}
+            disabled={nothingToReset}
+            aria-label="Reset all counters"
+            title="Reset"
+          >
+            <IconRefresh size={16} stroke={2} />
           </button>
-          <button className="pill" onClick={() => setConfiguring(true)}>
-            <IconSettings size={14} stroke={2} /> Configure
+          <button
+            className="pill mana-tracker-title-action"
+            onClick={() => setConfiguring(true)}
+            aria-label="Configure which counters are shown"
+            title="Configure"
+          >
+            <IconSettings size={16} stroke={2} />
           </button>
         </div>
       </div>
